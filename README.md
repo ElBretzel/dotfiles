@@ -10,6 +10,7 @@ Follows Unix philosophy: Keep it simple stupid.
 - WM: Dwm
 - Term: St
 - Bar: Dwm with Slstatus
+- Launcher: Dmenu
 - Shell: yash
 - Editor: Neovim (in my other dotfile repo, heavily bloated as it is my main editor for coding)
 - Font: Fira Code Nerd Font
