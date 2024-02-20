@@ -1,10 +1,10 @@
-# void-dotfile
+# void-dotfiles
 VoidLinux personal and minimal dotfile  
 
-# Philosophy:
+## Philosophy:
 Follows Unix philosophy: Keep it simple stupid.  
 
-# Info
+## Info
 
 - OS: Void Linux x86_64 (GLibC)
 - WM: Dwm
@@ -14,12 +14,21 @@ Follows Unix philosophy: Keep it simple stupid.
 - Editor: Neovim (in my other dotfile repo, heavily bloated as it is my main editor for coding)
 - Font: Fira Code Nerd Font
 
-# Screenshots
+## Screenshots
 
 ![desktop with apps](./ressources/demo1.png)
 ![desktop clean](./ressources/demo2.png)
 
-# Dependencies
+## Prerequisite
+
+Unix based system  
+X11 (minimal)  
+dbus  
+A seat manager (elogind)
+[Fira Code Nerd Font](https://www.nerdfonts.com/font-downloads) (I use this font in dwm, slock, st. Can be changed in config header file)  
+It should work on a musl system be I didn't tested it  
+
+## Dependencies
 
 - stow
 - make
@@ -38,7 +47,7 @@ Follows Unix philosophy: Keep it simple stupid.
 - xset
 - xrandr
 
-# Install
+## Install
 
 ```
 git clone https://github.com/ElBretzel/void-dotfile
@@ -68,16 +77,7 @@ xbps-install -Su\
 
 Otherwise check Dependencies  
 
-# Prerequisite
-
-Unix based system  
-X11 (minimal)  
-dbus  
-A seat manager (elogind)
-[Fira Code Nerd Font](https://www.nerdfonts.com/font-downloads) (I use this font in dwm, slock, st. Can be changed in config header file)  
-It should work on a musl system be I didn't tested it  
-
-# Run
+## Run
 
 ```
 startx
@@ -97,9 +97,9 @@ Icon=dwm\
 Type=XSession" > /usr/share/xsessions/dwm.desktop
 ```
 
-# Suckless patches' (so far)
+## Suckless patches' (so far)
 
-## DWM:
+### DWM:
 
 * [attach bellow](https://dwm.suckless.org/patches/attachbelow/)  
 * [auto start](https://dwm.suckless.org/patches/autostart/)  
@@ -117,12 +117,12 @@ Type=XSession" > /usr/share/xsessions/dwm.desktop
 * [zoomswap](https://dwm.suckless.org/patches/zoomswap/)  
 And some personal modifications such as bar height and bar workspace dot skin  
 
-## ST
+### ST
 
 st build took from [siduck](https://github.com/siduck/st) (didn't touched)  
 I like his build right now. When I will have time, I will do some minor tweaking  
 
-## Slstatus
+### Slstatus
 
 No patch but custom made scripts (I tried to not hardcode so it should work on all systems except for the 3 following scripts)  
 The xbps script only works for VoidLinux base system: it fetches all updatable packages and show the total number.  
@@ -131,7 +131,7 @@ change the script to remove the connection name's variable if you don't have Net
 The volume script works if pipewire and wireplumber is installed. You can change 
 this script if you have Pulseaudio or Alsa  
 
-## Slock
+### Slock
 
 * [auto timeoff](https://tools.suckless.org/slock/patches/auto-timeout/)  
 * [blur pixelated screen](https://tools.suckless.org/slock/patches/blur-pixelated-screen/)  
@@ -142,7 +142,7 @@ this script if you have Pulseaudio or Alsa
 I also modified source of Slock  
 I plan change dwmlogo patch because it is very painful to create custom logo  
 
-# Credits
+## Credits
 
 st build took from [siduck](https://github.com/siduck/st) (go check his
 works)  
