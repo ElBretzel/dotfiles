@@ -1,2 +1,0 @@
-#! /bin/sh
-uname -r | awk -F "-" '{print $1}' | xargs -r echo 
