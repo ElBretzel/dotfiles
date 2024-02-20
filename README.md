@@ -16,6 +16,10 @@ Follows Unix philosophy: Keep it simple stupid.
 
 # Dependencies
 
+- stow
+- make
+- git
+
 - libX11-dev
 - libXft-dev
 - libXinerama-dev
@@ -34,8 +38,7 @@ Follows Unix philosophy: Keep it simple stupid.
 ```
 git clone https://github.com/ElBretzel/void-dotfile
 cd void-dotfile
-mv * $HOME/.config/
-echo "exec dbus-run-session -- dwm" > $HOME/.xinitrc
+make
 ```
 
 For VoidLinux base system:
@@ -52,7 +55,10 @@ xbps-install -Su\
         freetype-devel\
         fontconfig-devel\
         xset\
-        xrandr
+        xrandr\
+        stow\
+        make\
+        git
 ```
 
 Otherwise check Dependencies  
