@@ -1,0 +1,29 @@
+#!/bin/sh
+
+
+
+
+net=$(ip add show | awk '/ UP / {print $2}' | sed 's/://')
+if [ ! "$net" ]; then
+    echo "^b#c564e8^ ^c#000000^󰤮 " "^c#202324^^b#9e48bd^ OFF"
+    exit
+fi
+name="CONNECTED"
+if command -v "nmcli" 1> /dev/null; then
+    name=$(nmcli | grep "$net" | grep "connected " | awk '{print $NF}')
+fi
+strength=$(echo 0$(cat /proc/net/wireless | awk 'NR==3 {print $3}')"*10/7" | bc)
+
+if [ "$strength" -le 20 ]; then
+    icon="^c#000000^󰤯"
+elif [ "$strength" -le 40 ]; then
+    icon="^c#000000^󰤟"
+elif [ "$strength" -le 60 ]; then
+    icon="^c#000000^󰤢"
+elif [ "$strength" -le 80 ]; then
+    icon="^c#000000^󰤥"
+elif [ "$strength" -le 100 ]; then
+    icon="^c#000000^󰤨"
+fi
+
+echo "^b#c564e8^ ^c#000000^$icon " "^c#202324^^b#b954de^ $name"
