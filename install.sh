@@ -107,10 +107,10 @@ update_proc()
         cd "$cur"
     }
 
-    suckless_clean dwm
-    suckless_clean slock
-    suckless_clean slstatus
-    suckless_clean st
+    suckless_update dwm
+    suckless_update slock
+    suckless_update slstatus
+    suckless_update st
 }
 
 case "$1" in
