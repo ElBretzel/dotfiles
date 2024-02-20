@@ -62,13 +62,15 @@ Otherwise check Dependencies
 Unix based system  
 X11 (minimal)  
 dbus  
-A seat manager (elogind)  
+A seat manager (elogind)
 [Fira Code Nerd Font](https://www.nerdfonts.com/font-downloads) (I use this font in dwm, slock, st. Can be changed in config header file)  
 It should work on a musl system be I didn't tested it  
 
 # Run
 
-startx  
+```
+startx
+```
 
 # Display Manager
 
@@ -92,7 +94,7 @@ Type=XSession" > /usr/share/xsessions/dwm.desktop
 * [auto start](https://dwm.suckless.org/patches/autostart/)  
 * [bar padding](https://dwm.suckless.org/patches/barpadding/)  
 * [cfacts](https://dwm.suckless.org/patches/cfacts/)  
-* [exit menu](https://dwm.suckless.org/patches/exitmenu/)  
+* [exit menu](https://dwm.suckless.org/patches/exitmenu/) (works with elogind managed session, otherwise edit exitdwm.c)  
 * [fibo layout](https://dwm.suckless.org/patches/fibonacci/)  
 * [focus adjacent](https://dwm.suckless.org/patches/focusadjacenttag/) (to be deleted)  
 * [hide vacant tag](https://dwm.suckless.org/patches/hide_vacant_tags/)  
