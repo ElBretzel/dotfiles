@@ -19,7 +19,7 @@ Follows Unix philosophy: Keep it simple stupid.
 ![desktop with apps](./ressources/demo1.png)
 ![desktop clean](./ressources/demo2.png)
 
-## Prerequisite
+## Prerequisites
 
 Unix based system  
 X11 (minimal)  
@@ -47,7 +47,7 @@ It should work on a musl system be I didn't tested it
 - xset
 - xrandr
 
-## Install
+## Installation
 
 For VoidLinux base system (otherwise check dependencies):  
 ```
