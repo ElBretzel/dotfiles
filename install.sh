@@ -29,6 +29,7 @@ install_proc()
     suckless_init slock
     suckless_init slstatus
     suckless_init st
+    suckless_init dmenu
 
     echo
     echo
@@ -67,6 +68,7 @@ uninstall_proc()
     suckless_uninstall slock
     suckless_uninstall slstatus
     suckless_uninstall st
+    suckless_uninstall dmenu
 
 }
 
@@ -87,6 +89,8 @@ clean_proc()
     suckless_clean slock
     suckless_clean slstatus
     suckless_clean st
+    suckless_clean dmenu
+
 }
 
 update_proc()
@@ -98,6 +102,8 @@ update_proc()
         echo "Accessing $1 folder: $HOME/.config/$1"
         cd "$HOME/.config/$1"
         echo "Trying to copy header file in $1"
+        sudo cp config.h config.h.OLD
+        sudo rm config.h
         echo "Executing command: sudo make config.h in folder $HOME/.config/$1"
         sudo make config.h
         echo "Trying to update in $1"
@@ -111,6 +117,12 @@ update_proc()
     suckless_update slock
     suckless_update slstatus
     suckless_update st
+    suckless_update dmenu
+    
+    echo
+    echo
+    echo "Do not forget to restart the updated binaries"
+
 }
 
 case "$1" in

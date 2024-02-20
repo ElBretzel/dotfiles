@@ -140,6 +140,15 @@ this script if you have Pulseaudio or Alsa
 I also modified source of Slock  
 I plan change dwmlogo patch because it is very painful to create custom logo  
 
+### Dmenu
+
+* [borders](https://tools.suckless.org/dmenu/patches/border/)
+* [center](https://tools.suckless.org/dmenu/patches/center/)
+* [fuzzymatch](https://tools.suckless.org/dmenu/patches/fuzzymatch/)
+* [fuzzymatch highlight](https://tools.suckless.org/dmenu/patches/fuzzyhighlight/)
+* [lineheight](https://tools.suckless.org/dmenu/patches/line-height/)
+* [numbers](https://tools.suckless.org/dmenu/patches/numbers/)
+
 ## Credits
 
 st build took from [siduck](https://github.com/siduck/st) (go check his

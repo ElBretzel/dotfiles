@@ -29,7 +29,8 @@ void exitdwm() {
 
   FILE *exit_menu = popen(
       "echo \"" S_FORMAT(LOCK) "\n" S_FORMAT(RESTART_DWM) "\n" S_FORMAT(OFFSCREEN) "\n" S_FORMAT(
-          EXIT) "\n" S_FORMAT(REBOOT) "\n" S_FORMAT(SHUTDOWN) "\" | dmenu -p "
+          EXIT) "\n" S_FORMAT(REBOOT) "\n" S_FORMAT(SHUTDOWN) "\" | dmenu -i "
+                                                              "-F -p "
                                                               "exit: "
                                                               "|"
                                                               " " S_FORMAT_CLEAR,
