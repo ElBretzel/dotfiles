@@ -10,7 +10,8 @@ Follows Unix philosophy: Keep it simple stupid.
 - WM: Dwm
 - Term: St
 - Bar: Dwm with Slstatus
-- Editor: Neovim (in my other dotfile repo)
+- Shell: yash
+- Editor: Neovim (in my other dotfile repo, heavily bloated as it is my main editor for coding)
 - Font: Fira Code Nerd Font
 
 # Dependencies
@@ -19,13 +20,14 @@ Follows Unix philosophy: Keep it simple stupid.
 - libXft-dev
 - libXinerama-dev
 - libXext-dev
+- libXrender-dev
 - imlib2-dev
-- xrandr-dev
 - libharfbuzz-dev
+- gd-dev
 - freetype2-dev
 - fontconfig-dev
-- libglib-dev
 - xset
+- xrandr
 
 # Install
 
@@ -36,6 +38,25 @@ mv * $HOME/.config/
 echo "exec dbus-run-session -- dwm" > $HOME/.xinitrc
 ```
 
+For VoidLinux base system:
+```
+xbps-install -Su\
+        libX11-devel\
+        libXft-devel\
+        libXinerama-devel\
+        libXext-devel\
+        libXrender-devel\
+        imlib2-devel\
+        harfbuzz-devel\
+        gd-devel\
+        freetype-devel\
+        fontconfig-devel\
+        xset\
+        xrandr
+```
+
+Otherwise check Dependencies
+
 # Prerequisite
 
 Unix based system
@@ -43,6 +64,7 @@ X11 (minimal)
 dbus
 A seat manager (elogind)
 [Fira Code Nerd Font](https://www.nerdfonts.com/font-downloads) (I use this font in dwm, slock, st. Can be changed in config header file)
+It should work on a musl system be I didn't tested it
 
 # Run
 
