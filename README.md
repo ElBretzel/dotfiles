@@ -49,13 +49,7 @@ It should work on a musl system be I didn't tested it
 
 ## Install
 
-```
-git clone https://github.com/ElBretzel/void-dotfile
-cd void-dotfile
-make
-```
-
-For VoidLinux base system:
+For VoidLinux base system (otherwise check dependencies):  
 ```
 xbps-install -Su\
         libX11-devel\
@@ -74,8 +68,12 @@ xbps-install -Su\
         make\
         git
 ```
-
-Otherwise check Dependencies  
+Then clone the repo  
+```
+git clone https://github.com/ElBretzel/void-dotfile
+cd void-dotfile
+make
+```
 
 ## Run
 
