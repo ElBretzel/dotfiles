@@ -14,6 +14,11 @@ Follows Unix philosophy: Keep it simple stupid.
 - Editor: Neovim (in my other dotfile repo, heavily bloated as it is my main editor for coding)
 - Font: Fira Code Nerd Font
 
+# Screenshots
+
+![desktop with apps](./ressources/demo1.png)
+![desktop clean](./ressources/demo2.png)
+
 # Dependencies
 
 - stow
