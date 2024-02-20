@@ -26,7 +26,7 @@ X11 (minimal)
 dbus  
 A seat manager (elogind)
 [Fira Code Nerd Font](https://www.nerdfonts.com/font-downloads) (I use this font in dwm, slock, st. Can be changed in config header file)  
-It should work on a musl system be I didn't tested it  
+Everything should work on a musl system be I didn't tested it  
 
 ## Dependencies
 
