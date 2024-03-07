@@ -111,53 +111,93 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  int fifo_fd = open(FIFO_NAME, O_RDONLY | O_NONBLOCK, 0666);
-  if (fifo_fd == -1) {
-    free_cava_cmd(cava_cmd);
-    fprintf(stderr, "could not open cava FIFO for reading");
+  int fds[2];
+  if (pipe(fds) == -1) {
+    perror("could not create pipe");
     close(temp_fd);
+    free_cava_cmd(cava_cmd);
     exit(EXIT_FAILURE);
   }
 
-  pid_t pid = fork();
-  int status;
+  pid_t left;
+  pid_t right;
 
-  if (pid == -1) {
-    perror("could not fork");
-    exit(EXIT_FAILURE);
-  }
+  if ((left = fork()) == 0) {
+    close(fds[0]);
+    if (dup2(fds[1], STDOUT_FILENO) == -1) // Left end takes stdout
+    {
+      close(fds[1]);
+      close(temp_fd);
+      perror("could not dup2");
+      _exit(EXIT_FAILURE); // bye bye alloc
+    }
+    close(fds[1]);
 
-  if (pid == 0) // Child
-  {
     if (execvp(cava_cmd[0], cava_cmd + 1) == -1) {
+      close(temp_fd);
       perror("could not execve the command");
       _exit(EXIT_FAILURE); // bye bye alloc
     }
     _exit(EXIT_SUCCESS);
+
+  } else if (left == -1) {
+    perror("could not fork");
+    close(fds[0]);
+    close(fds[1]);
+    close(temp_fd);
+    free_cava_cmd(cava_cmd);
+    exit(EXIT_FAILURE);
   }
 
-  unsigned char bar_heights[bars];
-  while (!waitpid(pid, &status, WNOHANG)) {
-    int num_read = read(fifo_fd, bar_heights, sizeof(unsigned char) * bars);
-
-    if (num_read < bars) {
-      free_cava_cmd(cava_cmd);
-      close(fifo_fd);
+  if ((right = fork()) == 0) {
+    close(fds[1]);
+    if (dup2(fds[0], STDIN_FILENO) == -1) // Right end takes stdin
+    {
+      close(fds[0]);
       close(temp_fd);
-      fprintf(stderr, "no more data from cava");
-      exit(EXIT_FAILURE);
+      perror("could not dup2");
+      _exit(EXIT_FAILURE); // bye bye alloc
+    }
+    close(fds[0]);
+
+    FILE *fifo_file = fopen(FIFO_NAME, "rb");
+    if (fifo_file == NULL) {
+      fprintf(stderr, "could not open cava FIFO for reading");
+      _exit(EXIT_FAILURE);
     }
 
-    for (int i = 0; i < bars; i++) {
-      float height = (bar_heights[i] / 255.f) * 100;
-      draw_slstatus(height);
+    unsigned char bar_heights[bars];
+    int num_read = fread(bar_heights, sizeof(unsigned char), bars, fifo_file);
+
+    while (num_read >= bars) {
+      for (int i = 0; i < bars; i++) {
+        float height = (bar_heights[i] / 255.f) * 100;
+        draw_slstatus(height);
+      }
+      fprintf(stdout, "\n");
+      fflush(stdout);
     }
-    fprintf(stdout, "\n");
-    fflush(stdout);
+
+    _exit(EXIT_SUCCESS);
+
+  } else if (right == -1) {
+    perror("could not fork");
+    close(fds[0]);
+    close(fds[1]);
+    close(temp_fd);
+    free_cava_cmd(cava_cmd);
+    exit(EXIT_FAILURE);
   }
+
+  close(fds[0]);
+  close(fds[1]);
+
+  int status;
+  waitpid(left, &status, 0);
+  waitpid(right, &status, 0);
 
   free_cava_cmd(cava_cmd);
   close(temp_fd);
-  close(fifo_fd);
-  return WIFEXITED(status);
+
+  return EXIT_SUCCESS;
 }
