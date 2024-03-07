@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
 
   if (pid == 0) // Child
   {
-    if (execvp("cava", cava_cmd + 1) == -1) {
+    if (execvp(cava_cmd[0], cava_cmd + 1) == -1) {
       perror("could not execve the command");
       _exit(EXIT_FAILURE); // bye bye alloc
     }
@@ -141,7 +141,11 @@ int main(int argc, char *argv[]) {
     int num_read = read(fifo_fd, bar_heights, sizeof(unsigned char) * bars);
 
     if (num_read < bars) {
-      continue;
+      free_cava_cmd(cava_cmd);
+      close(fifo_fd);
+      close(temp_fd);
+      fprintf(stderr, "no more data from cava");
+      exit(EXIT_FAILURE);
     }
 
     for (int i = 0; i < bars; i++) {
