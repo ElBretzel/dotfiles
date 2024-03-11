@@ -29,6 +29,7 @@ enum cava_actions {
 };
 
 int init(void);
+int open_fifo_ready(void);
 
 char *colors[] = {"#35e856", "#a6cc2b", "#cc9c2d", "#c9652a",
                   "#cf3f32", "#cf3273", "#b62ebf", "#7d2fbd",
@@ -38,22 +39,28 @@ char *ascii[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
 struct signal_deamon {
   int graceful;
   pid_t pid;
+  int fifo_fd;
 };
 
 typedef struct signal_deamon sdeamon;
 
-static sdeamon dm = {.graceful = 1, .pid = -1};
+static sdeamon dm = {.graceful = 1, .pid = -1, .fifo_fd = -1};
 
 void handler(int signum) {
-  if (signum == SIGTERM) {
+  if (signum == SIGTERM || signum == SIGINT) {
     if (dm.pid > 1) {
       kill(dm.pid, SIGKILL);
     }
     dm.graceful = 0;
   }
   if (signum == SIGUSR1) {
+    // Backend listen
     if (dm.pid > 1) {
       kill(dm.pid, SIGKILL);
+      // Frontend listen
+    } else {
+      close(dm.fifo_fd);
+      dm.fifo_fd = open_fifo_ready();
     }
     dm.pid = -1;
   }
@@ -311,6 +318,10 @@ int init_signal(void) {
     perror("sigaction: error receiving SIGUSR1 signal.");
     return EXIT_FAILURE;
   }
+  if (sigaction(SIGINT, &sa, NULL) == -1) {
+    perror("sigaction: error receiving SIGINT signal.");
+    return EXIT_FAILURE;
+  }
   if (sigaction(SIGTERM, &sa, NULL) == -1) {
     perror("sigaction: error receiving SIGTERM signal.");
     return EXIT_FAILURE;
@@ -344,17 +355,18 @@ int main(void) {
   init_signal();
   pid_t pid_daemon = start_daemon();
   int fifo_fd = open_fifo_ready();
+  dm.fifo_fd = fifo_fd;
 
   int status;
   char BUFFER[SIZE_ALLOC * BARS] = {0};
   while (waitpid(pid_daemon, &status, WNOHANG) == 0) {
     memset(BUFFER, 0, sizeof(char) * SIZE_ALLOC * BARS);
     usleep(1000000 / FRAMERATE);
-    cava_dwm(fifo_fd, ACTION_PRINT, BUFFER);
+    cava_dwm(dm.fifo_fd, ACTION_PRINT, BUFFER);
     printf("%s\n", BUFFER);
   }
 
-  close(fifo_fd);
+  close(dm.fifo_fd);
 }
 
 // Link to slstatus (so can modify with config.def.h)
