@@ -1,5 +1,7 @@
 #define _POSIX_C_SOURCE 199309L
+#define _XOPEN_SOURCE 500
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
@@ -14,11 +16,19 @@
 #define BARS 10
 #define NUMBER_ARGS 4
 #define FIFO_NAME "/tmp/cava_fifo"
-#define FAKE_TMP_FILE "/tmp/cava_config.tmp"
-#define SHELL_EXECUTABE "sh"
+#define TMP_TEMPLATE "/tmp/XXXXXX"
+#define BINLOC "/bin/%s"
 #define WIDTH 10
 #define HEIGHT 25
 #define MINSIZE 5
+#define FRAMERATE 60
+
+enum cava_actions {
+  ACTION_CONTINUOUS,
+  ACTION_PRINT,
+};
+
+int init(void);
 
 char *colors[] = {"#35e856", "#a6cc2b", "#cc9c2d", "#c9652a",
                   "#cf3f32", "#cf3273", "#b62ebf", "#7d2fbd",
@@ -26,53 +36,80 @@ char *colors[] = {"#35e856", "#a6cc2b", "#cc9c2d", "#c9652a",
 char *ascii[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
 
 struct signal_deamon {
-  int signal;
   int graceful;
+  pid_t pid;
 };
 
 typedef struct signal_deamon sdeamon;
 
-static sdeamon dm = {.signal = 0, .graceful = 1};
+static sdeamon dm = {.graceful = 1, .pid = -1};
 
-void write_config(int temp_fd, int bars) {
-
-  char buffer[1024] = {0};
-  const char *filecontent = "[general]\n"
-                            "bars = %d\n"
-                            "[input]\n"
-                            "method = pulse\n"
-                            "source = auto\n"
-                            "[output]\n"
-                            "method = raw\n"
-                            "data_format = binary\n"
-                            "channels = mono\n"
-                            "raw_target = %s\n"
-                            "bit_format = 8bit\n";
-  sprintf((char *)buffer, filecontent, bars, FIFO_NAME);
-  write(temp_fd, buffer, strlen(buffer));
+void handler(int signum) {
+  if (signum == SIGTERM) {
+    if (dm.pid > 1) {
+      kill(dm.pid, SIGKILL);
+    }
+    dm.graceful = 0;
+  }
+  if (signum == SIGUSR1) {
+    if (dm.pid > 1) {
+      kill(dm.pid, SIGKILL);
+    }
+    dm.pid = -1;
+  }
 }
 
-void draw_slstatus(float *bars_num) {
+void write_config(int tmp_fd) {
+  char buffer[1024] = {0};
+  const char *config = "[general]\n"
+                       "bars = %d\n"
+                       "[input]\n"
+                       "method = pulse\n"
+                       "source = auto\n"
+                       "[output]\n"
+                       "method = raw\n"
+                       "data_format = binary\n"
+                       "channels = stereo\n"
+                       "raw_target = %s\n"
+                       "bit_format = 8bit\n";
+
+  sprintf(buffer, config, BARS, FIFO_NAME);
+  if (write(tmp_fd, buffer, strlen(buffer)) == -1) {
+    perror("could not write into temporary file");
+    exit(EXIT_FAILURE);
+  }
+  if (fsync(tmp_fd) == -1) {
+    perror("could not sync the temporary file");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void draw_status2d(float *bars_num, char *BUFFER) {
 
   int x = 0;
+  char formatted[SIZE_ALLOC] = {0};
   for (int i = 0; i < BARS; i++) {
     int colorsize = (int)bars_num[i] / 10;
-    printf("^c%s^^r%d,0,%d,%d^", colors[colorsize], x + WIDTH * i, WIDTH,
-           (int)((bars_num[i] * HEIGHT) / 100) + MINSIZE);
+    sprintf(formatted, "^c%s^^r%d,0,%d,%d^", colors[colorsize], x + WIDTH * i,
+            WIDTH, (int)(bars_num[i] * HEIGHT) + MINSIZE);
+    strcat(BUFFER, formatted);
   }
-  printf("^f%d^", x + WIDTH * BARS);
+  sprintf(formatted, "^f%d^", x + WIDTH * BARS);
+  strcat(BUFFER, formatted);
   return;
 }
 
-void draw_ascii(float *bars_num) {
+void draw_ascii(float *bars_num, char *BUFFER) {
+  char formatted[SIZE_ALLOC] = {0};
   for (int i = 0; i < BARS; i++) {
-    int asciisize = (int)bars_num[i] / 10;
-    printf("%s ", ascii[asciisize]);
+    int asciisize = bars_num[i] * BARS;
+    sprintf(formatted, "%s ", ascii[asciisize]);
+    strcat(BUFFER, formatted);
   }
 }
 
-char **create_cava_cmd(int temp_fd, int bars) {
-  write_config(temp_fd, bars);
+char **create_cava_cmd(int tmp_fd, char *tmp_name) {
+  write_config(tmp_fd);
   char **cava_cmd = calloc(NUMBER_ARGS + 1, sizeof(char *));
   if (cava_cmd == NULL) {
     return NULL;
@@ -84,25 +121,53 @@ char **create_cava_cmd(int temp_fd, int bars) {
     }
   }
 
-  char *sh_bin = calloc(SIZE_ALLOC + 1, sizeof(char));
-  const char *shell_bin = "/bin/%s";
-  memcpy(sh_bin, shell_bin, strlen(shell_bin));
-  sprintf(sh_bin, shell_bin, SHELL_EXECUTABE);
-
-  memcpy(cava_cmd[0], sh_bin, strlen(sh_bin));
-  memcpy(cava_cmd[1], SHELL_EXECUTABE, strlen(SHELL_EXECUTABE));
-
-  const char *sh_param = "-c";
-  memcpy(cava_cmd[2], sh_param, strlen(sh_param));
-
-  const char *cmd_name = "cava -p %s";
-  memcpy(cava_cmd[3], cmd_name, strlen(cmd_name));
-  sprintf(cava_cmd[3], cmd_name, FAKE_TMP_FILE);
+  sprintf(cava_cmd[0], BINLOC, "cava");
+  memcpy(cava_cmd[1], "cava", strlen("cava"));
+  memcpy(cava_cmd[2], "-p", strlen("-p"));
+  sprintf(cava_cmd[3], "%s", tmp_name);
   cava_cmd[NUMBER_ARGS] = NULL;
 
-  free(sh_bin);
-
   return cava_cmd;
+}
+
+int frame_bar(int fifo_fd, float *bars_num) {
+  unsigned char bar_heights[BARS] = {0};
+  unsigned char copy_bar_heights[BARS] = {0};
+  int num_read;
+
+  // Flush fifo and keep in memory the last one
+  while ((num_read = read(fifo_fd, copy_bar_heights,
+                          BARS * sizeof(unsigned char))) >= BARS) {
+    memcpy(bar_heights, copy_bar_heights, sizeof(unsigned char) * BARS);
+  }
+
+  for (int i = 0; i < BARS; i++) {
+    float height = copy_bar_heights[i] / 255.f;
+    bars_num[i] = height;
+  }
+  return num_read != 0;
+}
+
+void simple_print(int fifo_fd, char *BUFFER) {
+  float bars_num[BARS];
+  int num_read = frame_bar(fifo_fd, bars_num);
+
+  // Fifo not empty
+  if (num_read > 0) {
+    draw_ascii(bars_num, BUFFER);
+  }
+}
+
+void continuous_print(int fifo_fd, char *BUFFER) {
+  int num_read = BARS;
+  float bars_num[BARS];
+
+  while (dm.graceful && num_read > 0) {
+    num_read = frame_bar(fifo_fd, bars_num);
+    draw_status2d(bars_num, BUFFER);
+    fprintf(stdout, "\n");
+    fflush(stdout);
+  }
 }
 
 void free_cava_cmd(char **cava_cmd) {
@@ -119,155 +184,178 @@ void free_cava_cmd(char **cava_cmd) {
   free(cava_cmd);
 }
 
-void handler(int signum) {
-  if (signum == SIGUSR1) {
-    dm.graceful = 0;
-  } else if (signum == SIGUSR2) {
-    // Restart (move main)
+int free_step0(char *tmp_name) {
+  if (tmp_name != NULL) {
+    free(tmp_name);
   }
+  return EXIT_FAILURE;
+}
+int free_step1(int tmp_fd, char *tmp_name) {
+  close(tmp_fd);
+  unlink(tmp_name);
+  free_step0(tmp_name);
+  return EXIT_FAILURE;
 }
 
-int main(int argc, char *argv[]) {
-  int bars = BARS;
-  if (argc > 1)
-    bars = atoi(argv[1]);
-  if (bars < 1) {
-    fprintf(stderr, "error: bars is '%d', must be 1 or more\n", bars);
-    exit(EXIT_FAILURE);
+int free_step2(int tmp_fd, char *tmp_name, char **cava_cmd) {
+  free_step1(tmp_fd, tmp_name);
+  free_cava_cmd(cava_cmd);
+  return EXIT_FAILURE;
+}
+
+int init(void) {
+  char *tmp_name = calloc(SIZE_ALLOC + 1, sizeof(char));
+  if (tmp_name == NULL) {
+    return EXIT_FAILURE;
   }
 
-  // You can use O_TMP_FILE but for portability reason, I prefer to create FAKE
-  // temp file...
-  // other possibilities:
-  // mkstemp but require feature test macro
-  // tmpnam but require c11
-  remove(FAKE_TMP_FILE);
-  int temp_fd = open(FAKE_TMP_FILE, O_RDWR | O_CREAT | O_EXCL, 0666);
-  // int temp_fd = open(FAKE_TMP_FILE, O_WRONLY | O_TMPFILE | O_EXCL, 0666);
-  if (temp_fd == -1) {
-    perror("temp file could not be created");
-    exit(EXIT_FAILURE);
+  memcpy(tmp_name, TMP_TEMPLATE, strlen(TMP_TEMPLATE));
+  int tmp_fd = mkstemp(tmp_name);
+  if (tmp_fd == -1) {
+    perror("could not created templated temporary file");
+    return free_step0(tmp_name);
   }
 
   unlink(FIFO_NAME);
   if (mkfifo(FIFO_NAME, 0666) == -1) {
     perror("could not create cava FIFO for writing");
-    close(temp_fd);
-    exit(EXIT_FAILURE);
+    return free_step1(tmp_fd, tmp_name);
   }
 
-  char **cava_cmd = create_cava_cmd(temp_fd, bars);
+  char **cava_cmd = create_cava_cmd(tmp_fd, tmp_name);
   if (cava_cmd == NULL) {
     perror("could not allocate the cava command, should not happen under any "
            "circumstance");
-    close(temp_fd);
-    exit(EXIT_FAILURE);
+    return free_step1(tmp_fd, tmp_name);
   }
 
-  int fds[2];
-  if (pipe(fds) == -1) {
-    perror("could not create pipe");
-    close(temp_fd);
-    free_cava_cmd(cava_cmd);
-    exit(EXIT_FAILURE);
+  pid_t exec_cava = fork();
+
+  if (exec_cava == -1) {
+    perror("could not fork");
+    return free_step2(tmp_fd, tmp_name, cava_cmd);
   }
 
-  pid_t exec_cava;
+  if (exec_cava == 0) {
 
-  if ((exec_cava = fork()) == 0) {
-    close(fds[0]);
-    close(fds[1]);
+    // OPTIONNAL: redirect stdout && stderr >> /dev/null
+    // LESS ERROR PRONE FINAL OUTPUT
+    // Because we are in a different process, stdout will not be modified in
+    // parent
+    int trash_file = open("/dev/null", O_WRONLY);
+    if (trash_file != -1) {
+      dup2(trash_file, STDOUT_FILENO);
+      dup2(trash_file, STDERR_FILENO);
+      close(trash_file);
+    }
 
-    if (execvp(*cava_cmd, cava_cmd + 1)) {
-      close(temp_fd);
+    if (execvp(*cava_cmd, cava_cmd + 1) == -1) {
       perror("could not execve the command");
       _exit(EXIT_FAILURE); // bye bye alloc
     }
-    _exit(EXIT_SUCCESS);
+  }
 
-  } else if (exec_cava == -1) {
-    perror("could not fork");
-    close(fds[0]);
-    close(fds[1]);
-    close(temp_fd);
-    free_cava_cmd(cava_cmd);
+  dm.pid = exec_cava;
+  waitpid(exec_cava, NULL, 0);
+  free_step2(tmp_fd, tmp_name, cava_cmd);
+  return EXIT_SUCCESS;
+}
+
+int cava_dwm(int fifo_fd, enum cava_actions act, char *BUFFER) {
+
+  switch (act) {
+  case ACTION_CONTINUOUS:
+    continuous_print(fifo_fd, BUFFER);
+    break;
+  case ACTION_PRINT:
+    simple_print(fifo_fd, BUFFER);
+    break;
+  }
+
+  return EXIT_SUCCESS;
+}
+
+pid_t start_daemon(void) {
+
+  pid_t daemon = fork();
+  if (daemon == -1) {
+    perror("could not start cava dwm program as daemon...");
     exit(EXIT_FAILURE);
   }
 
-  pid_t deamon = fork();
-  if (deamon == -1) {
-    perror("could not fork");
-    close(fds[0]);
-    close(fds[1]);
-    close(temp_fd);
-    free_cava_cmd(cava_cmd);
-    exit(EXIT_FAILURE);
+  if (daemon != 0) {
+    return daemon;
   }
 
+  while (dm.graceful) {
+    int status;
+    status = init();
+    if (status == EXIT_FAILURE) {
+      _exit(EXIT_FAILURE);
+    }
+  }
+
+  _exit(EXIT_SUCCESS);
+}
+
+int init_signal(void) {
   struct sigaction sa;
   sa.sa_flags = 0;
   sa.sa_handler = handler;
 
-  if (deamon != 0) {
-    close(fds[0]);
-    close(fds[1]);
-    close(temp_fd);
-    exit(EXIT_SUCCESS);
-  }
-
   if (sigemptyset(&sa.sa_mask) == -1) {
     perror("sigemptyset: could not fill mask.");
-    return -1;
+    return EXIT_FAILURE;
   }
   if (sigaction(SIGUSR1, &sa, NULL) == -1) {
     perror("sigaction: error receiving SIGUSR1 signal.");
-    return -1;
+    return EXIT_FAILURE;
   }
-  if (sigaction(SIGUSR2, &sa, NULL) == -1) {
-    perror("sigaction: error receiving SIGUSR2 signal.");
-    return -1;
+  if (sigaction(SIGTERM, &sa, NULL) == -1) {
+    perror("sigaction: error receiving SIGTERM signal.");
+    return EXIT_FAILURE;
   }
+  return EXIT_SUCCESS;
+}
 
-  close(fds[1]);
-  if (dup2(fds[0], STDIN_FILENO) == -1) // Right end takes stdin
-  {
-    close(fds[0]);
-    close(temp_fd);
-    perror("could not dup2");
-    _exit(EXIT_FAILURE); // bye bye alloc
-  }
-  close(fds[0]);
+int open_fifo_ready(void) {
 
-  FILE *fifo_file = fopen(FIFO_NAME, "rb");
-  if (fifo_file == NULL) {
-    fprintf(stderr, "could not open cava FIFO for reading");
-    _exit(EXIT_FAILURE);
-  }
+  int fifo_fd = -1;
+  unsigned char buffer[1];
+  int num_read;
 
-  unsigned char bar_heights[bars];
-  int num_read = fread(bar_heights, sizeof(unsigned char), bars, fifo_file);
-  float bars_num[bars];
-
-  while (dm.graceful && num_read >= bars) {
-    fread(bar_heights, sizeof(unsigned char), bars, fifo_file);
-
-    for (int i = 0; i < bars; i++) {
-      float height = (bar_heights[i] / 255.f) * 100;
-      bars_num[i] = height;
+  do {
+    if (fifo_fd > 1) {
+      close(fifo_fd);
     }
+    usleep(300000); // 300ms wait
 
-    draw_slstatus(bars_num);
-    fprintf(stdout, "\n");
-    fflush(stdout);
-  }
+    fifo_fd = open(FIFO_NAME, O_RDONLY | O_NONBLOCK);
+    if (fifo_fd == -1) {
+      fprintf(stderr, "could not open cava FIFO for reading");
+      _exit(EXIT_FAILURE);
+    }
+  } while ((num_read = read(fifo_fd, buffer, 1 * sizeof(unsigned char))) <= 0);
+  return fifo_fd;
+}
 
-  fclose(fifo_file);
-  free_cava_cmd(cava_cmd);
-  close(temp_fd);
-  remove(FAKE_TMP_FILE);
+int main(void) {
+
+  init_signal();
+  pid_t pid_daemon = start_daemon();
+  int fifo_fd = open_fifo_ready();
 
   int status;
-  kill(exec_cava, SIGKILL);
+  char BUFFER[SIZE_ALLOC * BARS] = {0};
+  while (waitpid(pid_daemon, &status, WNOHANG) == 0) {
+    memset(BUFFER, 0, sizeof(char) * SIZE_ALLOC * BARS);
+    usleep(1000000 / FRAMERATE);
+    cava_dwm(fifo_fd, ACTION_PRINT, BUFFER);
+    printf("%s\n", BUFFER);
+  }
 
-  return WIFEXITED(status);
+  close(fifo_fd);
 }
+
+// Link to slstatus (so can modify with config.def.h)
+// Unlink tmp file
