@@ -113,8 +113,9 @@ void draw_status2d(float *bars_num, const char *format, char *BUFFER) {
   if (subbuffer == NULL) {
     return;
   }
+  int size_color = (sizeof(colors) / sizeof(colors[0])) - 1;
   for (int i = 0; i < BARS; i++) {
-    int colorsize = (int)(bars_num[i] * 10);
+    int colorsize = (int)(bars_num[i] * size_color);
     int height = (int)(bars_num[i] * (HEIGHT - HEIGHT_PADDING)) + MINSIZE;
     int height_base = HEIGHT - height;
     int erase_base = 0;

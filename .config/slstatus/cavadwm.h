@@ -18,11 +18,9 @@
 #define FIFO_NAME "/tmp/cava_fifo"
 
 static const char *color_bg = "#1a1b26";
-static const char *colors[] = {"#35e856", "#a6cc2b", "#cc9c2d", "#c9652a",
-                               "#cf3f32", "#cf3273", "#b62ebf", "#7d2fbd",
-                               "#3430b8", "#2f8bb5", "#2aad93"};
-static const char *ascii[] = {"0", "1", "2", "3", "4", "5",
-                              "6", "7", "8", "9", "10"};
+static const char *colors[] = {"#7daea3", "#a9b665", "#d4a356", "#d8a657",
+                               "#e78a4e", "#de854c", "#e96c5f", "#ea6962"};
+static const char *ascii[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8"};
 
 enum cava_actions {
   ACTION_CONTINUOUS,
