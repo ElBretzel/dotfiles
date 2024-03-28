@@ -1,6 +1,5 @@
 /* See LICENSE file for copyright and license details. */
 #include <X11/Xlib.h>
-#include <errno.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +24,7 @@ int open_fifo_ready(void);
 
 void handler(int signum) {
   if (signum == SIGTERM || signum == SIGINT) {
-    printf("PID: %d\n", dm.pid);
+    // printf("PID: %d\n", dm.pid);
     if (dm.pid > 1) {
       kill(dm.pid, SIGTERM);
       // printf("kill(%d, SIGINT);\n", dm.pid);
@@ -36,15 +35,15 @@ void handler(int signum) {
   if (signum == SIGUSR1) {
     // printf("Enter: %d\n", dm.pid);
     //  Backend listen
-    printf("I enter\n");
-    printf("PID: %d\n", dm.pid);
+    // printf("I enter\n");
+    // printf("PID: %d\n", dm.pid);
     if (dm.pid > 1) {
       // printf("%d\n", dm.pid);
       kill(dm.pid, SIGTERM);
     }
     // Frontend listen
     else {
-      printf("Closing fifo %s: %d\n", FIFO_NAME, dm.fifo_fd);
+      // printf("Closing fifo %s: %d\n", FIFO_NAME, dm.fifo_fd);
       close(dm.fifo_fd);
       unlink(FIFO_NAME);
       mkfifo(FIFO_NAME, 0666);
@@ -184,20 +183,6 @@ int frame_bar(int fifo_fd, float *bars_num) {
   return num_read != 0;
 }
 
-/*
-void continuous_print(int fifo_fd, const char *format, char *BUFFER) {
-  int num_read = BARS;
-  float bars_num[BARS];
-
-  while (dm.graceful && num_read > 0) {
-    num_read = frame_bar(fifo_fd, bars_num);
-    draw_status2d(bars_num, format, BUFFER);
-    fprintf(stdout, "\n");
-    fflush(stdout);
-  }
-}
-*/
-
 void free_cava_cmd(char **cava_cmd) {
 
   if (cava_cmd == NULL) {
@@ -320,16 +305,16 @@ pid_t start_daemon(void) {
   }
 
   while (dm.graceful) {
-    printf("graceful: %d\n", dm.graceful);
-    printf("Before: %d\n", dm.pid);
+    // printf("graceful: %d\n", dm.graceful);
+    // printf("Before: %d\n", dm.pid);
     int status;
     status = init();
-    printf("After: %d\n", dm.pid);
+    // printf("After: %d\n", dm.pid);
     if (status != EXIT_SUCCESS) {
       _exit(EXIT_FAILURE);
     }
   }
-  printf("I exited graceful\n");
+  // printf("I exited graceful\n");
 
   _exit(EXIT_SUCCESS);
 }
@@ -391,7 +376,8 @@ int main(int argc, char *argv[]) {
   sflag = 0;
   ARGBEGIN {
   case 'v':
-    die("slstatus-" VERSION);
+    fprintf(stderr, "slstatus-%s", VERSION);
+    break;
   case '1':
     done = 1;
     /* FALLTHROUGH */
@@ -515,15 +501,13 @@ int main(int argc, char *argv[]) {
         intspec.tv_nsec = 0;
 
         difftimespec(&nwait, &cavawait, &intspec);
-      }
-
-      size_t n = (wait.tv_nsec * FRAMERATE) / 1E9;
-      for (size_t i = 0; i < n; i++) {
-        fill_bar_buffer(fifo_fd, cpy_buffer, BUFFER);
-        // printf("%s\n", BUFFER);
-        print_status(BUFFER, cpy_buffer);
-        // printf("%s\n", BUFFER);
-        nanosleep(&nwait, NULL);
+        size_t n = (wait.tv_nsec * FRAMERATE) / 1E9;
+        for (size_t i = 0; i < n; i++) {
+          fill_bar_buffer(fifo_fd, cpy_buffer, BUFFER);
+          print_status(BUFFER, cpy_buffer);
+          // printf("%s\n", BUFFER);
+          nanosleep(&nwait, NULL);
+        }
       }
     }
 
