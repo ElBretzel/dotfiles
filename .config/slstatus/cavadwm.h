@@ -35,10 +35,6 @@ struct signal_deamon {
 };
 
 typedef struct signal_deamon sdeamon;
-
 static sdeamon dm = {.graceful = 1, .pid = -1, .fifo_fd = -1};
-int open_fifo_ready(void);
-pid_t start_daemon(void);
-void fill_bar_buffer(int fifo_fd, const char *format, char *BUFFER);
 
 #endif /* CAVADWM_H */

@@ -1,10 +1,6 @@
 #include "cavadwm.h"
 #include "config.h"
-#include <asm-generic/errno-base.h>
-#include <errno.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 
 /*
 void handler(int signum) {
@@ -303,13 +299,16 @@ pid_t start_daemon(void) {
   }
 
   while (dm.graceful) {
-    // printf("%d\n", dm.pid);
+    printf("graceful: %d\n", dm.graceful);
+    printf("Before: %d\n", dm.pid);
     int status;
     status = init();
+    printf("After: %d\n", dm.pid);
     if (status != EXIT_SUCCESS) {
       _exit(EXIT_FAILURE);
     }
   }
+  printf("I exited graceful\n");
 
   _exit(EXIT_SUCCESS);
 }
