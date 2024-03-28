@@ -102,7 +102,8 @@ struct arg {
 static const struct arg args[] = {
     /* function format          argument */
 
-    {run_command, "^c#9ece6a^%s", "sh $HOME/.config/slstatus/scripts/xbps"},
+    {cava, "%s ", ""},
+    //{run_command, "^c#9ece6a^%s", "sh $HOME/.config/slstatus/scripts/xbps"},
     {run_command, "^c#a9b1d6^^b#222222^ %s ",
      "sh $HOME/.config/slstatus/scripts/brightness"},
 
@@ -128,7 +129,6 @@ static const struct arg args[] = {
      "^b#1a1b26^ "
      "^c#f7768e^%s ^b#1a1b26^ ",
      "sh $HOME/.config/slstatus/scripts/time"},
-    {cava, "%s", ""},
 };
 
 #endif /* CONFIG_H */

@@ -17,6 +17,7 @@
 #define NUMBER_ARGS 4
 #define FIFO_NAME "/tmp/cava_fifo"
 
+static const char *color_bg = "#1a1b26";
 static const char *colors[] = {"#35e856", "#a6cc2b", "#cc9c2d", "#c9652a",
                                "#cf3f32", "#cf3273", "#b62ebf", "#7d2fbd",
                                "#3430b8", "#2f8bb5", "#2aad93"};

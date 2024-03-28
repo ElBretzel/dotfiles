@@ -104,6 +104,7 @@ int write_config(int tmp_fd) {
   return 0;
 }
 
+int min(int a, int b) { return a < b ? a : b; }
 void draw_status2d(float *bars_num, const char *format, char *BUFFER) {
 
   int x = 0;
@@ -113,14 +114,18 @@ void draw_status2d(float *bars_num, const char *format, char *BUFFER) {
     return;
   }
   for (int i = 0; i < BARS; i++) {
-    int colorsize = (int)bars_num[i] / 10;
-    sprintf(formatted, "^c%s^^r%d,0,%d,%d^^c%s^^r%d,%d,%d,%d^",
-            colors[colorsize], x + WIDTH * i, WIDTH,
-            (int)(bars_num[i] * HEIGHT) + MINSIZE, "#ffffff", x + WIDTH * i,
-            (int)(bars_num[i] * HEIGHT) + MINSIZE, WIDTH, HEIGHT * 100);
+    int colorsize = (int)(bars_num[i] * 10);
+    int height = min((int)(bars_num[i] * HEIGHT) + MINSIZE, HEIGHT - 1);
+    int height_base = HEIGHT - height;
+    int erase_base = 0;
+    int erase_height = height_base;
+    int x_base = x + WIDTH * i;
+    sprintf(formatted, "^c%s^^r%d,%d,%d,%d^^c%s^^r%d,%d,%d,%d^",
+            colors[colorsize], x_base, height_base, WIDTH, height, color_bg,
+            x_base, erase_base, WIDTH, erase_height);
     strcat(subbuffer, formatted);
   }
-  sprintf(formatted, "^f%d^", x + WIDTH * BARS);
+  sprintf(formatted, "^f%d^", x + WIDTH * (BARS + 1));
   strcat(subbuffer, formatted);
   int l = sprintf(BUFFER, format, subbuffer);
   BUFFER[l] = '\0';
