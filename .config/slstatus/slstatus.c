@@ -81,7 +81,7 @@ int write_config(int tmp_fd) {
   char buffer[1024] = {0};
   const char *config = "[general]\n"
                        "bars = %d\n"
-                       "framerate = %d"
+                       "framerate = %d\n"
                        "[input]\n"
                        "method = pulse\n"
                        "source = auto\n"
