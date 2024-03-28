@@ -77,7 +77,7 @@ int init_signal(void) {
   return EXIT_SUCCESS;
 }
 
-void write_config(int tmp_fd) {
+int write_config(int tmp_fd) {
   char buffer[1024] = {0};
   const char *config = "[general]\n"
                        "bars = %d\n"
@@ -94,12 +94,13 @@ void write_config(int tmp_fd) {
   sprintf(buffer, config, BARS, FIFO_NAME);
   if (write(tmp_fd, buffer, strlen(buffer)) == -1) {
     perror("could not write into temporary file");
-    exit(EXIT_FAILURE);
+    return -1;
   }
   if (fsync(tmp_fd) == -1) {
     perror("could not sync the temporary file");
-    exit(EXIT_FAILURE);
+    return -1;
   }
+  return 0;
 }
 
 void draw_status2d(float *bars_num, const char *format, char *BUFFER) {
@@ -144,7 +145,9 @@ void draw_ascii(float *bars_num, const char *format, char *BUFFER) {
 }
 
 char **create_cava_cmd(int tmp_fd, char *tmp_name) {
-  write_config(tmp_fd);
+  if (write_config(tmp_fd) == -1) {
+    return NULL;
+  }
   char **cava_cmd = calloc(NUMBER_ARGS + 1, sizeof(char *));
   if (cava_cmd == NULL) {
     return NULL;
@@ -213,6 +216,40 @@ int free_step1(int tmp_fd, char *tmp_name) {
 int free_step2(int tmp_fd, char *tmp_name, char **cava_cmd) {
   free_step1(tmp_fd, tmp_name);
   free_cava_cmd(cava_cmd);
+  return EXIT_FAILURE;
+}
+
+int free_sl0(const char *msg) {
+  dm.graceful = 0;
+  if (dm.pid > 1)
+    kill(dm.pid, SIGTERM);
+  if (msg != NULL)
+    die("%s\n", msg);
+  return EXIT_FAILURE;
+}
+
+int free_sl1(const char *msg, char *BUFFER) {
+  free_sl0(msg);
+  free(BUFFER);
+  return EXIT_FAILURE;
+}
+
+int free_sl2(const char *msg, char *BUFFER, char *TMPBUFFER) {
+  free_sl1(msg, BUFFER);
+  free(TMPBUFFER);
+  return EXIT_FAILURE;
+}
+
+int free_sl3(const char *msg, char *BUFFER, char *TMPBUFFER, char *cpy_buffer) {
+  free_sl2(msg, BUFFER, TMPBUFFER);
+  free(cpy_buffer);
+  return EXIT_FAILURE;
+}
+
+int free_sl4(const char *msg, char *BUFFER, char *TMPBUFFER, char *cpy_buffer) {
+  free_sl3(msg, BUFFER, TMPBUFFER, cpy_buffer);
+  close(dm.fifo_fd);
+  unlink(FIFO_NAME);
   return EXIT_FAILURE;
 }
 
@@ -297,7 +334,7 @@ pid_t start_daemon(void) {
   pid_t daemon = fork();
   if (daemon == -1) {
     perror("could not start cava dwm program as daemon...");
-    exit(EXIT_FAILURE);
+    _exit(EXIT_FAILURE);
   }
 
   if (daemon != 0) {
@@ -334,14 +371,14 @@ int open_fifo_ready(void) {
 
     fifo_fd = open(FIFO_NAME, O_RDONLY | O_NONBLOCK | O_CREAT);
     if (fifo_fd == -1) {
-      fprintf(stderr, "could not open cava FIFO for reading");
-      _exit(EXIT_FAILURE);
+      fprintf(stderr, "could not open cava FIFO for reading\n");
+      return -1;
     }
     max_try--;
   } while ((num_read = read(fifo_fd, buffer, 1 * sizeof(unsigned char))) <= 0 &&
            max_try > 0);
   if (max_try == 0) {
-    fprintf(stderr, "could not open fifo at all");
+    fprintf(stderr, "could not open fifo at all\n");
     return -1;
   }
   return fifo_fd;
@@ -389,41 +426,38 @@ int main(int argc, char *argv[]) {
   }
   ARGEND
 
-  if (argc)
+  if (argc) {
+
     usage();
+  }
 
   // Init slstatus && cava slstatus SIGNAL handler
   init_signal();
 
-  if (!sflag && !(dpy = XOpenDisplay(NULL)))
+  if (!sflag && !(dpy = XOpenDisplay(NULL))) {
+
     die("XOpenDisplay: Failed to open display");
+  }
 
   // Start cava slstatus daemon
   pid_t pid_daemon = start_daemon();
 
-  size_t iwanttodie = SIZE_ALLOC * BARS + MAXLEN + 1;
+  size_t alloc_buffer = SIZE_ALLOC * BARS + MAXLEN + 1;
 
   int status;
-  char *BUFFER = calloc(iwanttodie, sizeof(char));
+  char *BUFFER = calloc(alloc_buffer, sizeof(char));
   if (BUFFER == NULL) {
-    fprintf(stderr, "Could not allocate buffer");
-    dm.graceful = 0;
-    return EXIT_FAILURE;
-  }
-  char *TMPBUFFER = calloc(iwanttodie, sizeof(char));
-  if (TMPBUFFER == NULL) {
-    fprintf(stderr, "Could not allocate temp buffer");
-    dm.graceful = 0;
-    return EXIT_FAILURE;
+    return free_sl0("Could not allocate buffer");
   }
 
-  char *cpy_buffer = calloc(iwanttodie, sizeof(char));
+  char *TMPBUFFER = calloc(alloc_buffer, sizeof(char));
+  if (TMPBUFFER == NULL) {
+    return free_sl1("Could not allocate temp buffer", BUFFER);
+  }
+
+  char *cpy_buffer = calloc(alloc_buffer, sizeof(char));
   if (cpy_buffer == NULL) {
-    fprintf(stderr, "Could not allocate buffer");
-    free(BUFFER);
-    free(TMPBUFFER);
-    dm.graceful = 0;
-    return EXIT_FAILURE;
+    return free_sl2("Could not allocate format buffer", BUFFER, TMPBUFFER);
   }
 
   // Open fifo cava
@@ -431,36 +465,30 @@ int main(int argc, char *argv[]) {
   dm.fifo_fd = fifo_fd;
 
   if (dm.fifo_fd == -1) {
-    free(BUFFER);
-    free(TMPBUFFER);
-    dm.graceful = 0;
-    return EXIT_FAILURE;
+    return free_sl3("Could not open fifo", BUFFER, TMPBUFFER, cpy_buffer);
   }
 
   do {
-    memset(BUFFER, 0, sizeof(char) * (iwanttodie - 1));
+    memset(BUFFER, 0, sizeof(char) * (alloc_buffer - 1));
 
     if (clock_gettime(CLOCK_MONOTONIC, &start) < 0) {
-      close(dm.fifo_fd);
-      free(BUFFER);
-      free(TMPBUFFER);
-      free(cpy_buffer);
-      dm.graceful = 0;
-      die("clock_gettime:");
+      return free_sl4("clock_gettime:", BUFFER, TMPBUFFER, cpy_buffer);
     }
 
-    memcpy(TMPBUFFER, BUFFER, sizeof(char) * (iwanttodie - 1));
+    memcpy(TMPBUFFER, BUFFER, sizeof(char) * (alloc_buffer - 1));
     for (i = len = 0; i < LEN(args); i++) {
       if (cpy_buffer[0] != '\0' && i % 3 == 0) {
         fill_bar_buffer(fifo_fd, cpy_buffer, TMPBUFFER);
         print_status(TMPBUFFER, cpy_buffer);
       }
-      if (!(res = args[i].func(args[i].args)))
+      if (!(res = args[i].func(args[i].args))) {
         res = unknown_str;
+      }
 
-      if ((ret = esnprintf(BUFFER + len, (iwanttodie - 1), args[i].fmt, res)) <
-          0)
+      if ((ret = esnprintf(BUFFER + len, (alloc_buffer - 1), args[i].fmt,
+                           res)) < 0) {
         break;
+      }
 
       len += ret;
     }
@@ -472,22 +500,12 @@ int main(int argc, char *argv[]) {
       puts(BUFFER);
       fflush(stdout);
       if (ferror(stdout)) {
-        close(dm.fifo_fd);
-        dm.graceful = 0;
-        free(BUFFER);
-        free(TMPBUFFER);
-        free(cpy_buffer);
-        die("puts:");
+        return free_sl4("puts:", BUFFER, TMPBUFFER, cpy_buffer);
       }
     } else {
       if (!done) {
         if (clock_gettime(CLOCK_MONOTONIC, &current) < 0) {
-          close(dm.fifo_fd);
-          free(cpy_buffer);
-          dm.graceful = 0;
-          free(BUFFER);
-          free(TMPBUFFER);
-          die("clock_gettime:");
+          return free_sl4("clock_gettime:", BUFFER, TMPBUFFER, cpy_buffer);
         }
         difftimespec(&diff, &current, &start);
 
@@ -513,12 +531,7 @@ int main(int argc, char *argv[]) {
 
   } while (!done && waitpid(pid_daemon, &status, WNOHANG) == 0);
 
-  close(dm.fifo_fd);
-  dm.graceful = 0;
-  unlink(FIFO_NAME);
-  free(BUFFER);
-  free(TMPBUFFER);
-  free(cpy_buffer);
+  free_sl4(NULL, BUFFER, TMPBUFFER, cpy_buffer);
   if (!sflag) {
     XStoreName(dpy, DefaultRootWindow(dpy), NULL);
     if (XCloseDisplay(dpy) < 0)
