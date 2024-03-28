@@ -1,6 +1,10 @@
 /* See LICENSE file for copyright and license details. */
 
+#ifndef SLSTATUS_H
+#define SLSTATUS_H
+
 /* battery */
+
 const char *battery_perc(const char *);
 const char *battery_remaining(const char *);
 const char *battery_state(const char *);
@@ -82,3 +86,7 @@ const char *vol_perc(const char *card);
 /* wifi */
 const char *wifi_essid(const char *interface);
 const char *wifi_perc(const char *interface);
+
+const char *cava(const char *unused);
+
+#endif /* SLSTATUS_H */

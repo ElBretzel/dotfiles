@@ -1,7 +1,12 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#include "slstatus.h"
+
 /* See LICENSE file for copyright and license details. */
 
 /* interval between updates (in ms) */
-const unsigned int interval = 1000;
+#define INTERVAL 1000
 
 /* text to show if no value can be retrieved */
 static const char unknown_str[] = "n/a";
@@ -9,6 +14,30 @@ static const char unknown_str[] = "n/a";
 /* maximum output string length */
 #define MAXLEN 2048
 
+// Number of bars
+#define BARS 10
+// Width of one bar in pixel
+#define WIDTH 10
+// Height of one bar in pixel
+#define HEIGHT 25
+// Minimum height of one bar in pixel
+#define MINSIZE 5
+// Number of refreshment per second (FPS) (ressource intensive)
+#define FRAMERATE 12
+
+/*
+ * Advanced configuration (should not be usefull unless you are using an OS with
+ * different Linux folder architecture
+ */
+
+// Where and how the tempfile will be located.
+// DO NOT CHANGE THE XXXXXX
+#define TMP_TEMPLATE "/tmp/cavadwm_XXXXXX"
+
+// Where the binary is located.
+// %s will be replaced by cava
+// ex: /bin/cava -> /bin/%s, /usr/bin/cava -> /usr/bin/%s, ...
+#define BINLOC "/bin/%s"
 /*
  * function            description                     argument (example)
  *
@@ -64,26 +93,42 @@ static const char unknown_str[] = "n/a";
  * wifi_perc           WiFi signal in percent          interface name (wlan0)
  */
 
-static const struct arg args[] = {
-	/* function format          argument */
-
-        { run_command, "^c#9ece6a^%s", "sh $HOME/.config/slstatus/scripts/xbps" },
-	{ run_command,    "^c#a9b1d6^^b#222222^ %s ", "sh $HOME/.config/slstatus/scripts/brightness" },
-
-	{ run_command,    "^c#a9b1d6^^b#222222^ %s ", "sh $HOME/.config/slstatus/scripts/battery" },
-
-
-	{ run_command,    "^c#a9b1d6^^b#222222^ %s ", "sh $HOME/.config/slstatus/scripts/volume" },
-
-
-	{ run_command,    "^b#1a1b26^ ^b#2a2b3d^^c#ad8ee6^  ^b#32344a^^c#ffffff^ %s ", "sh $HOME/.config/slstatus/scripts/ram" },
-
-        { run_command, "^b#2a2b3d^^c#e0af68^ 󱛟 ^b#32344a^^c#ffffff^ %s ", "sh $HOME/.config/slstatus/scripts/disk" },
-
-
-//        { run_command, "^b#7aa2f7^^c#000000^|  : %s ", "sh /home/dluca/Programs/slstatus/shellmodules/kern" },
-
-	{ run_command,    "^b#1a1b26^ %s ", "sh $HOME/.config/slstatus/scripts/connection" },
-        { run_command, "^b#1a1b26^ ^c#f7768e^%s ^b#1a1b26^ ", "sh $HOME/.config/slstatus/scripts/time" },
-
+struct arg {
+  const char *(*func)(const char *);
+  const char *fmt;
+  const char *args;
 };
+
+static const struct arg args[] = {
+    /* function format          argument */
+
+    {run_command, "^c#9ece6a^%s", "sh $HOME/.config/slstatus/scripts/xbps"},
+    {run_command, "^c#a9b1d6^^b#222222^ %s ",
+     "sh $HOME/.config/slstatus/scripts/brightness"},
+
+    {run_command, "^c#a9b1d6^^b#222222^ %s ",
+     "sh $HOME/.config/slstatus/scripts/battery"},
+
+    {run_command, "^c#a9b1d6^^b#222222^ %s ",
+     "sh $HOME/.config/slstatus/scripts/volume"},
+
+    {run_command,
+     "^b#1a1b26^ ^b#2a2b3d^^c#ad8ee6^  ^b#32344a^^c#ffffff^ %s ",
+     "sh $HOME/.config/slstatus/scripts/ram"},
+
+    {run_command, "^b#2a2b3d^^c#e0af68^ 󱛟 ^b#32344a^^c#ffffff^ %s ",
+     "sh $HOME/.config/slstatus/scripts/disk"},
+
+    //        { run_command, "^b#7aa2f7^^c#000000^|  : %s ", "sh
+    //        /home/dluca/Programs/slstatus/shellmodules/kern" },
+
+    {run_command, "^b#1a1b26^ %s ",
+     "sh $HOME/.config/slstatus/scripts/connection"},
+    {run_command,
+     "^b#1a1b26^ "
+     "^c#f7768e^%s ^b#1a1b26^ ",
+     "sh $HOME/.config/slstatus/scripts/time"},
+    {cava, "%s", ""},
+};
+
+#endif /* CONFIG_H */

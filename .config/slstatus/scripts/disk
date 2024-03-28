@@ -1,5 +1,5 @@
 #!/bin/sh
 
-
+set -e
 
 df -h | grep $(cat /proc/cmdline | awk '{print $2}' | sed 's/^.*=\(\)/\1/') | head -n 1 | awk '{print $3}' | sed 's/%/% /g'

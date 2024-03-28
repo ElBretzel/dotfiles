@@ -5,6 +5,10 @@
 include config.mk
 
 REQ = util
+
+INTEGRATION =\
+	     cavadwm
+
 COM =\
 	components/battery\
 	components/cat\
@@ -27,11 +31,15 @@ COM =\
 	components/uptime\
 	components/user\
 	components/volume\
-	components/wifi
+	components/wifi \
+	components/cava
 
 all: slstatus
 
 $(COM:=.o): config.mk $(REQ:=.h) slstatus.h
+
+$(INTEGRATION:=.o): config.h config.mk $(INTEGRATION:=.h) $(COM:=.o)
+
 slstatus.o: slstatus.c slstatus.h arg.h config.h config.mk $(REQ:=.h)
 
 .c.o:
@@ -40,11 +48,12 @@ slstatus.o: slstatus.c slstatus.h arg.h config.h config.mk $(REQ:=.h)
 config.h:
 	cp config.def.h $@
 
-slstatus: slstatus.o $(COM:=.o) $(REQ:=.o)
-	$(CC) -o $@ $(LDFLAGS) $(COM:=.o) $(REQ:=.o) slstatus.o $(LDLIBS)
+slstatus: slstatus.o $(COM:=.o) $(REQ:=.o) $(INTEGRATION:=.o)
+	$(CC) -o $@ $(LDFLAGS) $(COM:=.o) $(REQ:=.o) $(INTEGRATION:=.o) slstatus.o $(LDLIBS)
+
 
 clean:
-	rm -f slstatus slstatus.o $(COM:=.o) $(REQ:=.o) slstatus-${VERSION}.tar.gz
+	rm -f slstatus slstatus.o $(COM:=.o) $(REQ:=.o) $(INTEGRATION:=.o) slstatus-${VERSION}.tar.gz
 
 dist:
 	rm -rf "slstatus-$(VERSION)"
