@@ -18,12 +18,14 @@ static const char unknown_str[] = "n/a";
 #define BARS 10
 // Width of one bar in pixel
 #define WIDTH 10
-// Height of one bar in pixel
-#define HEIGHT 25
+// If there is bar padding, define the height where padding applies
+#define HEIGHT_PADDING 5
+// Max height one bar in pixel
+#define HEIGHT 23
 // Minimum height of one bar in pixel
 #define MINSIZE 5
 // Number of refreshment per second (FPS) (ressource intensive)
-#define FRAMERATE 12
+#define FRAMERATE 24
 
 /*
  * Advanced configuration (should not be usefull unless you are using an OS with
