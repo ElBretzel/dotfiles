@@ -81,6 +81,7 @@ int write_config(int tmp_fd) {
   char buffer[1024] = {0};
   const char *config = "[general]\n"
                        "bars = %d\n"
+                       "framerate = %d"
                        "[input]\n"
                        "method = pulse\n"
                        "source = auto\n"
@@ -91,7 +92,7 @@ int write_config(int tmp_fd) {
                        "raw_target = %s\n"
                        "bit_format = 8bit\n";
 
-  sprintf(buffer, config, BARS, FIFO_NAME);
+  sprintf(buffer, config, BARS, FRAMERATE, FIFO_NAME);
   if (write(tmp_fd, buffer, strlen(buffer)) == -1) {
     perror("could not write into temporary file");
     return -1;
@@ -171,19 +172,19 @@ char **create_cava_cmd(int tmp_fd, char *tmp_name) {
 int frame_bar(int fifo_fd, float *bars_num) {
   unsigned char bar_heights[BARS] = {0};
   unsigned char copy_bar_heights[BARS] = {0};
-  int num_read;
+  int num_read = 0;
 
   // Flush fifo and keep in memory the last one
-  while ((num_read = read(fifo_fd, copy_bar_heights,
-                          BARS * sizeof(unsigned char))) >= BARS) {
+  while ((num_read += read(fifo_fd, copy_bar_heights,
+                           BARS * sizeof(unsigned char))) >= BARS) {
     memcpy(bar_heights, copy_bar_heights, sizeof(unsigned char) * BARS);
   }
 
   for (int i = 0; i < BARS; i++) {
-    float height = copy_bar_heights[i] / 255.f;
+    float height = bar_heights[i] / 255.f;
     bars_num[i] = height;
   }
-  return num_read != 0;
+  return (num_read + 1) < BARS;
 }
 
 void free_cava_cmd(char **cava_cmd) {
@@ -318,15 +319,17 @@ int init(void) {
   return status == EXIT_FAILURE;
 }
 
-void fill_bar_buffer(int fifo_fd, const char *format, char *BUFFER) {
+int fill_bar_buffer(int fifo_fd, const char *format, char *BUFFER) {
 
   float bars_num[BARS];
-  int num_read = frame_bar(fifo_fd, bars_num);
+  int frame = frame_bar(fifo_fd, bars_num);
 
   // Fifo not empty
-  if (num_read > 0) {
+  if (!frame) {
     draw_status2d(bars_num, format, BUFFER);
+    return 0;
   }
+  return 1;
 }
 
 pid_t start_daemon(void) {
@@ -469,17 +472,18 @@ int main(int argc, char *argv[]) {
   }
 
   do {
+    strcpy(TMPBUFFER, BUFFER);
     memset(BUFFER, 0, sizeof(char) * (alloc_buffer - 1));
 
     if (clock_gettime(CLOCK_MONOTONIC, &start) < 0) {
       return free_sl4("clock_gettime:", BUFFER, TMPBUFFER, cpy_buffer);
     }
 
-    memcpy(TMPBUFFER, BUFFER, sizeof(char) * (alloc_buffer - 1));
     for (i = len = 0; i < LEN(args); i++) {
-      if (cpy_buffer[0] != '\0' && i % 3 == 0) {
-        fill_bar_buffer(fifo_fd, cpy_buffer, TMPBUFFER);
-        print_status(TMPBUFFER, cpy_buffer);
+      if (cpy_buffer[0] != '\0') {
+        int i = fill_bar_buffer(fifo_fd, cpy_buffer, TMPBUFFER);
+        if (!i)
+          print_status(TMPBUFFER, cpy_buffer);
       }
       if (!(res = args[i].func(args[i].args))) {
         res = unknown_str;
@@ -521,14 +525,13 @@ int main(int argc, char *argv[]) {
         difftimespec(&nwait, &cavawait, &intspec);
         size_t n = (wait.tv_nsec * FRAMERATE) / 1E9;
         for (size_t i = 0; i < n; i++) {
-          fill_bar_buffer(fifo_fd, cpy_buffer, BUFFER);
-          print_status(BUFFER, cpy_buffer);
-          // printf("%s\n", BUFFER);
+          int i = fill_bar_buffer(fifo_fd, cpy_buffer, BUFFER);
+          if (!i)
+            print_status(BUFFER, cpy_buffer);
           nanosleep(&nwait, NULL);
         }
       }
     }
-
   } while (!done && waitpid(pid_daemon, &status, WNOHANG) == 0);
 
   free_sl4(NULL, BUFFER, TMPBUFFER, cpy_buffer);
