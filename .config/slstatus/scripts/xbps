@@ -2,7 +2,6 @@
 
 set -e
 
-exit
 if ! updates_void=$(xbps-install -Sun 2> /dev/null | sed -n "s/\([^ ]*\).*/\1/p" | wc -l ); then
     updates_void=0
 fi

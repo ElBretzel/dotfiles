@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -18,6 +20,8 @@
 char buf[1024];
 static volatile sig_atomic_t done;
 static Display *dpy;
+static char *BUFFER;
+static int *SIZE_BUFFER;
 
 int init(void);
 int open_fifo_ready(void);
@@ -105,7 +109,7 @@ int write_config(int tmp_fd) {
 }
 
 int min(int a, int b) { return a < b ? a : b; }
-void draw_status2d(float *bars_num, const char *format, char *BUFFER) {
+void draw_status2d(float *bars_num, const char *format, char *buffer) {
 
   int x = 0;
   char formatted[SIZE_ALLOC] = {0};
@@ -115,12 +119,14 @@ void draw_status2d(float *bars_num, const char *format, char *BUFFER) {
   }
   int size_color = (sizeof(colors) / sizeof(colors[0])) - 1;
   for (int i = 0; i < BARS; i++) {
+
     int colorsize = (int)(bars_num[i] * size_color);
     int height = (int)(bars_num[i] * (HEIGHT - HEIGHT_PADDING)) + MINSIZE;
     int height_base = HEIGHT - height;
     int erase_base = 0;
     int erase_height = height_base;
     int x_base = x + WIDTH * i;
+
     sprintf(formatted, "^c%s^^r%d,%d,%d,%d^^c%s^^r%d,%d,%d,%d^",
             colors[colorsize], x_base, height_base, WIDTH, height, color_bg,
             x_base, erase_base, WIDTH, erase_height);
@@ -128,8 +134,8 @@ void draw_status2d(float *bars_num, const char *format, char *BUFFER) {
   }
   sprintf(formatted, "^f%d^", x + WIDTH * (BARS + 1));
   strcat(subbuffer, formatted);
-  int l = sprintf(BUFFER, format, subbuffer);
-  BUFFER[l] = '\0';
+  int l = sprintf(buffer, format, subbuffer);
+  buffer[l] = '\0';
   free(subbuffer);
 
   return;
@@ -226,7 +232,7 @@ int free_step2(int tmp_fd, char *tmp_name, char **cava_cmd) {
   return EXIT_FAILURE;
 }
 
-int free_sl0(const char *msg) {
+int free_sl1(const char *msg) {
   dm.graceful = 0;
   if (dm.pid > 1)
     kill(dm.pid, SIGTERM);
@@ -235,28 +241,28 @@ int free_sl0(const char *msg) {
   return EXIT_FAILURE;
 }
 
-int free_sl1(const char *msg, char *BUFFER) {
-  free_sl0(msg);
-  free(BUFFER);
-  return EXIT_FAILURE;
-}
-
-int free_sl2(const char *msg, char *BUFFER, char *TMPBUFFER) {
-  free_sl1(msg, BUFFER);
+int free_sl2(const char *msg, char *TMPBUFFER) {
+  free_sl1(msg);
   free(TMPBUFFER);
   return EXIT_FAILURE;
 }
 
-int free_sl3(const char *msg, char *BUFFER, char *TMPBUFFER, char *cpy_buffer) {
-  free_sl2(msg, BUFFER, TMPBUFFER);
+int free_sl3(const char *msg, char *TMPBUFFER, char *cpy_buffer) {
+  free_sl2(msg, TMPBUFFER);
   free(cpy_buffer);
   return EXIT_FAILURE;
 }
 
-int free_sl4(const char *msg, char *BUFFER, char *TMPBUFFER, char *cpy_buffer) {
-  free_sl3(msg, BUFFER, TMPBUFFER, cpy_buffer);
+int free_sl4(const char *msg, char *TMPBUFFER, char *cpy_buffer) {
+  free_sl3(msg, TMPBUFFER, cpy_buffer);
   close(dm.fifo_fd);
   unlink(FIFO_NAME);
+  return EXIT_FAILURE;
+}
+
+int unmap(char *BUFFER, int *SIZE_BUFFER) {
+  munmap(BUFFER, sizeof(BUFFER) * SIZE_ALLOC * BARS + MAXLEN + 1);
+  munmap(SIZE_BUFFER, sizeof(*SIZE_BUFFER));
   return EXIT_FAILURE;
 }
 
@@ -393,6 +399,37 @@ int open_fifo_ready(void) {
   return fifo_fd;
 }
 
+pid_t compute_status_parralel(size_t alloc_buffer) {
+
+  int ret;
+  const char *res;
+
+  pid_t slstatus = fork();
+
+  if (slstatus == -1) {
+    perror("could not start slstatus task in parallel...");
+    _exit(EXIT_FAILURE);
+  }
+
+  if (slstatus != 0) {
+    return slstatus;
+  }
+  size_t i, len;
+  for (i = len = 0; i < LEN(args); i++) {
+    if (!(res = args[i].func(args[i].args))) {
+      res = unknown_str;
+    }
+    if ((ret = esnprintf(BUFFER + len, (alloc_buffer - 1), args[i].fmt, res)) <
+        0) {
+      break;
+    }
+    len += ret;
+  }
+  BUFFER[len] = 0;
+  *SIZE_BUFFER = len;
+  exit(EXIT_SUCCESS);
+}
+
 static void difftimespec(struct timespec *res, struct timespec *a,
                          struct timespec *b) {
   res->tv_sec = a->tv_sec - b->tv_sec - (a->tv_nsec < b->tv_nsec);
@@ -415,9 +452,7 @@ static void print_status(char *BUFFER, char *cpy_buffer) {
 
 int main(int argc, char *argv[]) {
   struct timespec start, current, diff, intspec, wait, cavawait, nwait;
-  size_t i, len;
-  int sflag, ret;
-  const char *res;
+  int sflag;
 
   sflag = 0;
   ARGBEGIN {
@@ -454,19 +489,23 @@ int main(int argc, char *argv[]) {
   size_t alloc_buffer = SIZE_ALLOC * BARS + MAXLEN + 1;
 
   int status;
-  char *BUFFER = calloc(alloc_buffer, sizeof(char));
-  if (BUFFER == NULL) {
-    return free_sl0("Could not allocate buffer");
-  }
 
-  char *TMPBUFFER = calloc(alloc_buffer, sizeof(char));
-  if (TMPBUFFER == NULL) {
-    return free_sl1("Could not allocate temp buffer", BUFFER);
+  BUFFER = mmap(NULL, sizeof(BUFFER) * alloc_buffer, PROT_READ | PROT_WRITE,
+                MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+  SIZE_BUFFER = mmap(NULL, sizeof(*SIZE_BUFFER), PROT_READ | PROT_WRITE,
+                     MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+  char *CAVABUFFER = calloc(alloc_buffer, sizeof(char));
+  if (CAVABUFFER == NULL) {
+    unmap(BUFFER, SIZE_BUFFER);
+    return free_sl1("Could not allocate temp buffer");
   }
 
   char *cpy_buffer = calloc(alloc_buffer, sizeof(char));
   if (cpy_buffer == NULL) {
-    return free_sl2("Could not allocate format buffer", BUFFER, TMPBUFFER);
+    unmap(BUFFER, SIZE_BUFFER);
+    return free_sl2("Could not allocate format buffer", CAVABUFFER);
   }
 
   // Open fifo cava
@@ -474,73 +513,82 @@ int main(int argc, char *argv[]) {
   dm.fifo_fd = fifo_fd;
 
   if (dm.fifo_fd == -1) {
-    return free_sl3("Could not open fifo", BUFFER, TMPBUFFER, cpy_buffer);
+    unmap(BUFFER, SIZE_BUFFER);
+    return free_sl3("Could not open fifo", CAVABUFFER, cpy_buffer);
   }
 
+  pid_t first_compute = compute_status_parralel(alloc_buffer);
+  waitpid(first_compute, NULL, 0);
+
+  cpy_buffer[*SIZE_BUFFER] = '\0';
+  strncpy(cpy_buffer, BUFFER, *SIZE_BUFFER);
+
   do {
-    strcpy(TMPBUFFER, BUFFER);
-    memset(BUFFER, 0, sizeof(char) * (alloc_buffer - 1));
 
     if (clock_gettime(CLOCK_MONOTONIC, &start) < 0) {
-      return free_sl4("clock_gettime:", BUFFER, TMPBUFFER, cpy_buffer);
+      unmap(BUFFER, SIZE_BUFFER);
+      return free_sl4("clock_gettime:", CAVABUFFER, cpy_buffer);
     }
 
-    for (i = len = 0; i < LEN(args); i++) {
-      if (cpy_buffer[0] != '\0') {
-        int i = fill_bar_buffer(fifo_fd, cpy_buffer, TMPBUFFER);
-        if (!i)
-          print_status(TMPBUFFER, cpy_buffer);
-      }
-      if (!(res = args[i].func(args[i].args))) {
-        res = unknown_str;
-      }
+    strcpy(CAVABUFFER, BUFFER);
 
-      if ((ret = esnprintf(BUFFER + len, (alloc_buffer - 1), args[i].fmt,
-                           res)) < 0) {
-        break;
-      }
+    pid_t pid_slstatus = compute_status_parralel(alloc_buffer);
 
-      len += ret;
-    }
-
-    strncpy(cpy_buffer, BUFFER, len);
-    cpy_buffer[len] = '\0';
-
-    if (sflag) {
-      puts(BUFFER);
-      fflush(stdout);
-      if (ferror(stdout)) {
-        return free_sl4("puts:", BUFFER, TMPBUFFER, cpy_buffer);
-      }
-    } else {
-      if (!done) {
-        if (clock_gettime(CLOCK_MONOTONIC, &current) < 0) {
-          return free_sl4("clock_gettime:", BUFFER, TMPBUFFER, cpy_buffer);
+    do {
+      if (sflag) {
+        puts(CAVABUFFER);
+        fflush(stdout);
+        if (ferror(stdout)) {
+          unmap(BUFFER, SIZE_BUFFER);
+          return free_sl4("puts:", CAVABUFFER, cpy_buffer);
         }
-        difftimespec(&diff, &current, &start);
+      } else {
+        if (!fill_bar_buffer(fifo_fd, cpy_buffer, CAVABUFFER))
+          print_status(CAVABUFFER, cpy_buffer);
+      }
+      usleep(1000000 / FRAMERATE);
+    } while (!done && waitpid(pid_slstatus, NULL, WNOHANG) == 0);
 
-        intspec.tv_sec = INTERVAL / 1000;
-        intspec.tv_nsec = (INTERVAL % 1000) * 1E6;
-        difftimespec(&wait, &intspec, &diff);
+    if (!done) {
+      cpy_buffer[*SIZE_BUFFER] = '\0';
+      strncpy(cpy_buffer, BUFFER, *SIZE_BUFFER);
 
-        cavawait.tv_sec = wait.tv_sec / ((wait.tv_nsec * FRAMERATE) / 1E9);
-        cavawait.tv_nsec = wait.tv_nsec / FRAMERATE;
-        intspec.tv_sec = 0;
-        intspec.tv_nsec = 0;
+      if (clock_gettime(CLOCK_MONOTONIC, &current) < 0) {
+        unmap(BUFFER, SIZE_BUFFER);
+        return free_sl4("clock_gettime:", CAVABUFFER, cpy_buffer);
+      }
+      difftimespec(&diff, &current, &start);
 
-        difftimespec(&nwait, &cavawait, &intspec);
-        size_t n = (wait.tv_nsec * FRAMERATE) / 1E9;
-        for (size_t i = 0; i < n; i++) {
-          int i = fill_bar_buffer(fifo_fd, cpy_buffer, BUFFER);
-          if (!i)
+      intspec.tv_sec = INTERVAL / 1000;
+      intspec.tv_nsec = (INTERVAL % 1000) * 1E6;
+      difftimespec(&wait, &intspec, &diff);
+
+      cavawait.tv_sec = wait.tv_sec / ((wait.tv_nsec * FRAMERATE) / 1E9);
+      cavawait.tv_nsec = wait.tv_nsec / FRAMERATE;
+      intspec.tv_sec = 0;
+      intspec.tv_nsec = 0;
+
+      difftimespec(&nwait, &cavawait, &intspec);
+      size_t n = (wait.tv_nsec * FRAMERATE) / 1E9;
+      for (size_t i = 0; i < n; i++) {
+        if (sflag) {
+          puts(BUFFER);
+          fflush(stdout);
+          if (ferror(stdout)) {
+            unmap(BUFFER, SIZE_BUFFER);
+            return free_sl4("puts:", CAVABUFFER, cpy_buffer);
+          }
+        } else {
+          if (!fill_bar_buffer(fifo_fd, cpy_buffer, BUFFER))
             print_status(BUFFER, cpy_buffer);
-          nanosleep(&nwait, NULL);
         }
+        nanosleep(&nwait, NULL);
       }
     }
   } while (!done && waitpid(pid_daemon, &status, WNOHANG) == 0);
 
-  free_sl4(NULL, BUFFER, TMPBUFFER, cpy_buffer);
+  unmap(BUFFER, SIZE_BUFFER);
+  free_sl4(NULL, CAVABUFFER, cpy_buffer);
   if (!sflag) {
     XStoreName(dpy, DefaultRootWindow(dpy), NULL);
     if (XCloseDisplay(dpy) < 0)

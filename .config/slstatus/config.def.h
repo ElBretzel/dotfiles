@@ -9,7 +9,7 @@
 #define INTERVAL 1000
 
 /* text to show if no value can be retrieved */
-static const char unknown_str[] = "n/a";
+static const char unknown_str[] = "";
 
 /* maximum output string length */
 #define MAXLEN 2048
@@ -105,7 +105,7 @@ static const struct arg args[] = {
     /* function format          argument */
 
     {cava, "%s ", ""},
-    //{run_command, "^c#9ece6a^%s", "sh $HOME/.config/slstatus/scripts/xbps"},
+    {run_command, "^c#9ece6a^%s", "sh $HOME/.config/slstatus/scripts/xbps"},
     {run_command, "^c#a9b1d6^^b#222222^ %s ",
      "sh $HOME/.config/slstatus/scripts/brightness"},
 
