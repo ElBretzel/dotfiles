@@ -1,12 +1,9 @@
-#ifndef CONFIG_H
-#define CONFIG_H
-
 #include "slstatus.h"
 
 /* See LICENSE file for copyright and license details. */
 
 /* interval between updates (in ms) */
-#define INTERVAL 1000
+const unsigned int interval = 1000;
 
 /* text to show if no value can be retrieved */
 static const char unknown_str[] = "";
@@ -132,5 +129,3 @@ static const struct arg args[] = {
      "^c#f7768e^%s ^b#1a1b26^ ",
      "sh $HOME/.config/slstatus/scripts/time"},
 };
-
-#endif /* CONFIG_H */

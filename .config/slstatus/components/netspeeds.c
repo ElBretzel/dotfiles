@@ -2,7 +2,6 @@
 #include <limits.h>
 #include <stdio.h>
 
-#include "../config.h"
 #include "../slstatus.h"
 #include "../util.h"
 
@@ -15,6 +14,7 @@
 const char *netspeed_rx(const char *interface) {
   uintmax_t oldrxbytes;
   static uintmax_t rxbytes;
+  extern const unsigned int interval;
   char path[PATH_MAX];
 
   oldrxbytes = rxbytes;
@@ -26,12 +26,13 @@ const char *netspeed_rx(const char *interface) {
   if (oldrxbytes == 0)
     return NULL;
 
-  return fmt_human((rxbytes - oldrxbytes) * 1000 / INTERVAL, 1024);
+  return fmt_human((rxbytes - oldrxbytes) * 1000 / interval, 1024);
 }
 
 const char *netspeed_tx(const char *interface) {
   uintmax_t oldtxbytes;
   static uintmax_t txbytes;
+  extern const unsigned int interval;
   char path[PATH_MAX];
 
   oldtxbytes = txbytes;
@@ -43,7 +44,7 @@ const char *netspeed_tx(const char *interface) {
   if (oldtxbytes == 0)
     return NULL;
 
-  return fmt_human((txbytes - oldtxbytes) * 1000 / INTERVAL, 1024);
+  return fmt_human((txbytes - oldtxbytes) * 1000 / interval, 1024);
 }
 #elif defined(__OpenBSD__) | defined(__FreeBSD__)
 #include <ifaddrs.h>
@@ -57,6 +58,7 @@ const char *netspeed_rx(const char *interface) {
   struct if_data *ifd;
   uintmax_t oldrxbytes;
   static uintmax_t rxbytes;
+  extern const unsigned int interval;
   int if_ok = 0;
 
   oldrxbytes = rxbytes;
@@ -79,7 +81,7 @@ const char *netspeed_rx(const char *interface) {
   if (oldrxbytes == 0)
     return NULL;
 
-  return fmt_human((rxbytes - oldrxbytes) * 1000 / INTERVAL, 1024);
+  return fmt_human((rxbytes - oldrxbytes) * 1000 / interval, 1024);
 }
 
 const char *netspeed_tx(const char *interface) {
@@ -87,6 +89,7 @@ const char *netspeed_tx(const char *interface) {
   struct if_data *ifd;
   uintmax_t oldtxbytes;
   static uintmax_t txbytes;
+  extern const unsigned int interval;
   int if_ok = 0;
 
   oldtxbytes = txbytes;
@@ -109,6 +112,6 @@ const char *netspeed_tx(const char *interface) {
   if (oldtxbytes == 0)
     return NULL;
 
-  return fmt_human((txbytes - oldtxbytes) * 1000 / INTERVAL, 1024);
+  return fmt_human((txbytes - oldtxbytes) * 1000 / interval, 1024);
 }
 #endif

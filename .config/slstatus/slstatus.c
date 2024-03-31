@@ -11,7 +11,6 @@
 
 #include "arg.h"
 #include "cavadwm.h"
-#include "config.def.h"
 #include "config.h"
 #include "util.h"
 
@@ -559,8 +558,8 @@ int main(int argc, char *argv[]) {
       }
       difftimespec(&diff, &current, &start);
 
-      intspec.tv_sec = INTERVAL / 1000;
-      intspec.tv_nsec = (INTERVAL % 1000) * 1E6;
+      intspec.tv_sec = interval / 1000;
+      intspec.tv_nsec = (interval % 1000) * 1E6;
       difftimespec(&wait, &intspec, &diff);
 
       cavawait.tv_sec = wait.tv_sec / ((wait.tv_nsec * FRAMERATE) / 1E9);
