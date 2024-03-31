@@ -83,6 +83,8 @@ static const char *colors[][3] = {
 static const char *tags[] = {"", "", "", "", "",
                              "", "", "", ""};
 
+static const char *tag_active = "";
+
 static const unsigned int ulinepad =
     5; /* horizontal padding between the underline and tag */
 static const unsigned int ulinestroke =
