@@ -1,4 +1,13 @@
+#define _XOPEN_SOURCE 500
+
 #include "slstatus.h"
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 /* See LICENSE file for copyright and license details. */
 
@@ -36,19 +45,9 @@ static const char unknown_str[] = "";
 // If set to -1, the bar will always be displayed
 #define TIMEOUT 10
 
-/*
- * Advanced configuration (should not be usefull unless you are using an OS with
- * different Linux folder architecture
- */
-
-// Where and how the tempfile will be located.
-// DO NOT CHANGE THE XXXXXX
-#define TMP_TEMPLATE "/tmp/cavadwm_XXXXXX"
-
-// Where the binary is located.
-// %s will be replaced by cava
-// ex: /bin/cava -> /bin/%s, /usr/bin/cava -> /usr/bin/%s, ...
-#define BINLOC "/bin/%s"
+static const char *color_bg = "#1a1b26";
+static const char *colors[] = {"#7daea3", "#a9b665", "#d4a356", "#d8a657",
+                               "#e78a4e", "#de854c", "#e96c5f", "#ea6962"};
 /*
  * function            description                     argument (example)
  *
@@ -110,10 +109,40 @@ struct arg {
   const char *args;
 };
 
+/*
+ * Advanced configuration (should not be usefull unless you are using an OS with
+ * different Linux folder architecture
+ */
+
+#define SIZE_ALLOC 128
+#define NUMBER_ARGS 4
+#define FIFO_NAME "/tmp/cava_fifo"
+// Where and how the tempfile will be located.
+// DO NOT CHANGE THE XXXXXX
+#define TMP_TEMPLATE "/tmp/cavadwm_XXXXXX"
+// Where the binary is located.
+// %s will be replaced by cava
+// ex: /bin/cava -> /bin/%s, /usr/bin/cava -> /usr/bin/%s, ...
+#define BINLOC "/bin/%s"
+
+enum cava_actions {
+  ACTION_CONTINUOUS,
+  ACTION_PRINT,
+};
+
+struct signal_deamon {
+  int graceful;
+  pid_t pid;
+  int fifo_fd;
+};
+
+typedef struct signal_deamon sdeamon;
+static sdeamon dm = {.graceful = 1, .pid = -1, .fifo_fd = -1};
+
 static const struct arg args[] = {
     /* function format          argument */
 
-    {cava, " %s ", ""},
+    {cava, "%s ", ""},
     {run_command, "^c#9ece6a^%s", "sh $HOME/.config/slstatus/scripts/xbps"},
     {run_command, "^c#a9b1d6^^b#222222^ %s ",
      "sh $HOME/.config/slstatus/scripts/brightness"},

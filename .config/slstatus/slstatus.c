@@ -10,7 +10,6 @@
 #include <unistd.h>
 
 #include "arg.h"
-#include "cavadwm.h"
 #include "config.h"
 #include "util.h"
 
@@ -141,22 +140,6 @@ void draw_status2d(float *bars_num, const char *format, char *buffer) {
   free(subbuffer);
 
   return;
-}
-
-void draw_ascii(float *bars_num, const char *format, char *BUFFER) {
-  char formatted[SIZE_ALLOC] = {0};
-  char *subbuffer = calloc(SIZE_ALLOC * BARS + 1, sizeof(char));
-  if (subbuffer == NULL) {
-    return;
-  }
-  for (int i = 0; i < BARS; i++) {
-    int asciisize = bars_num[i] * BARS;
-    sprintf(formatted, "%s ", ascii[asciisize]);
-    strcat(subbuffer, formatted);
-  }
-  int l = sprintf(BUFFER, format, subbuffer);
-  BUFFER[l] = '\0';
-  free(subbuffer);
 }
 
 char **create_cava_cmd(int tmp_fd, char *tmp_name) {
