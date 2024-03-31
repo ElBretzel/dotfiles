@@ -1082,6 +1082,7 @@ Client *findbefore(Client *c) {
 }
 
 void focus(Client *c) {
+
   if (!c || !ISVISIBLE(c))
     for (c = selmon->stack; c && !ISVISIBLE(c); c = c->snext)
       ;
@@ -1095,7 +1096,20 @@ void focus(Client *c) {
     detachstack(c);
     attachstack(c);
     grabbuttons(c, 1);
-    XSetWindowBorder(dpy, c->win, scheme[SchemeSel][ColBorder].pixel);
+
+    Monitor *m = c->mon;
+    int i = 0;
+    int l = LENGTH(tags);
+
+    while (i < l && !(m->tagset[m->seltags] & 1 << i)) {
+      i++;
+    }
+
+    XSetWindowBorder(
+        dpy, c->win,
+        scheme[m->colorfultag ? tagschemes[i] : SchemeSel][ColBorder].pixel);
+
+    // XSetWindowBorder(dpy, c->win, scheme[SchemeSel][ColBorder].pixel);
     setfocus(c);
   } else {
     XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
@@ -2137,6 +2151,7 @@ void unfocus(Client *c, int setfocus) {
   if (!c)
     return;
   grabbuttons(c, 0);
+
   XSetWindowBorder(dpy, c->win, scheme[SchemeNorm][ColBorder].pixel);
   if (setfocus) {
     XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);

@@ -56,15 +56,15 @@ static const char *colors[][3] = {
     [SchemeNorm] = {col_fg, col_bg, col_bg},        /* \x0b */
     [SchemeSel] = {col_blue, col_dark, col_dark_1}, /* \x0c */
     [SchemeTag] = {col_br_black, col_bg, col_black},
-    [SchemeTag1] = {col_void, col_dark, col_black},
-    [SchemeTag2] = {col_red, col_dark, col_black},
-    [SchemeTag3] = {col_br_yellow, col_dark, col_black},
-    [SchemeTag4] = {col_br_blue, col_dark, col_black},
-    [SchemeTag5] = {col_br_magenta, col_dark, col_black},
-    [SchemeTag6] = {col_br_cyan, col_dark, col_black},
-    [SchemeTag7] = {col_br_green, col_dark, col_black},
-    [SchemeTag8] = {col_yellow, col_dark, col_black},
-    [SchemeTag9] = {col_end, col_dark, col_black},
+    [SchemeTag1] = {col_void, col_dark, col_void},
+    [SchemeTag2] = {col_red, col_dark, col_red},
+    [SchemeTag3] = {col_br_yellow, col_dark, col_br_yellow},
+    [SchemeTag4] = {col_br_blue, col_dark, col_br_blue},
+    [SchemeTag5] = {col_br_magenta, col_dark, col_br_magenta},
+    [SchemeTag6] = {col_br_cyan, col_dark, col_br_cyan},
+    [SchemeTag7] = {col_br_green, col_dark, col_br_green},
+    [SchemeTag8] = {col_yellow, col_dark, col_br_yellow},
+    [SchemeTag9] = {col_end, col_dark, col_end},
     [SchemeLayout] = {col_white, col_bg, col_black},
     [SchemeTitle] = {col_fg, col_bg, col_black},
     [SchemeTitleFloat] = {col_br_blue, col_bg, col_black},
@@ -98,8 +98,9 @@ static const Rule rules[] = {
      *	WM_NAME(STRING) = title
      */
     /* class      instance    title       tags mask     isfloating   monitor */
-    {"Gimp", NULL, NULL, 0, 1, -1},
     {"Firefox", NULL, NULL, 1 << 8, 0, -1},
+    {"Syncthing GTK", NULL, NULL, 1 << 7, 0, -1},
+    {"KeePassXC", NULL, NULL, 1 << 7, 0, -1},
 };
 
 /* layout(s) */
