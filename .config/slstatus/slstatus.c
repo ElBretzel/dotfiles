@@ -22,6 +22,7 @@ static char *BUFFER;
 static int *SIZE_BUFFER;
 static short flag_show;
 static double timed = 0;
+static short flag_restart = 0;
 
 int init(void);
 int open_fifo_ready(void);
@@ -52,11 +53,11 @@ void handler(int signum) {
       unlink(FIFO_NAME);
       mkfifo(FIFO_NAME, 0666);
       dm.fifo_fd = open_fifo_ready();
-      BUFFER[0] = 0;
     }
     dm.pid = -1;
     timed = 0;
     flag_show = 0;
+    flag_restart = 1;
   }
 }
 
@@ -394,7 +395,7 @@ int open_fifo_ready(void) {
     if (fifo_fd > 1) {
       close(fifo_fd);
     }
-    usleep(300000); // 300ms wait
+    usleep(FIFO_SCAN_INTERVAL); // 300ms wait
 
     fifo_fd = open(FIFO_NAME, O_RDONLY | O_NONBLOCK | O_CREAT);
     if (fifo_fd == -1) {
@@ -537,6 +538,7 @@ int main(int argc, char *argv[]) {
 
   int sum = 0;
   flag_show = 0;
+  flag_restart = 0;
 
   do {
 
@@ -607,6 +609,12 @@ int main(int argc, char *argv[]) {
       return free_sl4("clock_gettime:", CAVABUFFER, cpy_buffer);
     }
     difftimespec(&fin, &current, &start);
+
+    if (flag_restart) {
+      flag_restart = 0;
+      print_status("\0", cpy_buffer);
+      usleep(FIFO_SCAN_INTERVAL);
+    }
 
     if (TIMEOUT >= 0) {
       if (sum > 0) {

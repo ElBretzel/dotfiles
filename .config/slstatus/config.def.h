@@ -124,6 +124,11 @@ struct arg {
 // %s will be replaced by cava
 // ex: /bin/cava -> /bin/%s, /usr/bin/cava -> /usr/bin/%s, ...
 #define BINLOC "/bin/%s"
+// Interval of time fifo is scan
+// If there is any issue to open fifo, try to increase this value
+// Value is in ms (0.3s = 300000ms)
+// Default: 300000
+#define FIFO_SCAN_INTERVAL 300000
 
 enum cava_actions {
   ACTION_CONTINUOUS,
