@@ -105,14 +105,12 @@ Type=XSession" > /usr/share/xsessions/dwm.desktop
 * [bar padding](https://dwm.suckless.org/patches/barpadding/)  
 * [cfacts](https://dwm.suckless.org/patches/cfacts/)  
 * [exit menu](https://dwm.suckless.org/patches/exitmenu/) (works with elogind managed session, otherwise edit exitdwm.c)  
-* [fibo layout](https://dwm.suckless.org/patches/fibonacci/)  
-* [focus adjacent](https://dwm.suckless.org/patches/focusadjacenttag/) (to be deleted)  
 * [hide vacant tag](https://dwm.suckless.org/patches/hide_vacant_tags/)  
-* [pertag](https://dwm.suckless.org/patches/pertag/) (i will probably delete this)  
+* [pertag](https://dwm.suckless.org/patches/pertag/)  
 * [restartsig](https://dwm.suckless.org/patches/restartsig/)  
-* [status2d](https://dwm.suckless.org/patches/status2d/) (probably will replace with [status colors](https://dwm.suckless.org/patches/statuscolors/)  
+* [status2d](https://dwm.suckless.org/patches/status2d/) (used with my slstatus config)  
 * [underline tag](https://dwm.suckless.org/patches/underlinetags/)  
-* [vanity gaps](https://dwm.suckless.org/patches/vanitygaps/) (needs cleanup)  
+* [vanity gaps](https://dwm.suckless.org/patches/vanitygaps/) (everything is included but I only use fibonacci, feel free to modify)  
 * [zoomswap](https://dwm.suckless.org/patches/zoomswap/)  
 And some personal modifications such as bar height and bar workspace dot skin  
 
@@ -129,6 +127,11 @@ The connection script works if Network Manager is installed (you can delete or
 change the script to remove the connection name's variable if you don't have Network Manager)  
 The volume script works if pipewire and wireplumber is installed. You can change 
 this script if you have Pulseaudio or Alsa  
+
+I coded a small "plugin" to integrate CAVA bar into slstatus in C. It is still
+experimental but I like it as it is.  
+If you don't want my integration, just keep the config.def.h file and fetch 
+the original slstatus.c file from suckless repository.  
 
 ### Slock
 
