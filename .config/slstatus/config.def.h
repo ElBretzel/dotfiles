@@ -30,7 +30,7 @@ static const char unknown_str[] = "";
 // If there is bar padding, define the height where padding applies
 #define HEIGHT_PADDING 5
 // Max height one bar in pixel
-#define HEIGHT 23
+#define HEIGHT 24
 // Minimum height of one bar in pixel
 #define MINSIZE 3
 /*
@@ -142,7 +142,13 @@ static sdeamon dm = {.graceful = 1, .pid = -1, .fifo_fd = -1};
 static const struct arg args[] = {
     /* function format          argument */
 
-    {cava, "%s ", ""},
+    {cava, "%s ", ""}, // If you want to move CAVA, there might encounter some
+                       // glitch You can try to disable TIMEOUT (-1) or remove
+                       // completely this module
+                       //
+                       // I may try to fix this issue in another update but
+                       // I don't know how
+
     {run_command, "^c#9ece6a^%s", "sh $HOME/.config/slstatus/scripts/xbps"},
     {run_command, "^c#a9b1d6^^b#222222^ %s ",
      "sh $HOME/.config/slstatus/scripts/brightness"},

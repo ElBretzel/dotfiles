@@ -52,6 +52,7 @@ void handler(int signum) {
       unlink(FIFO_NAME);
       mkfifo(FIFO_NAME, 0666);
       dm.fifo_fd = open_fifo_ready();
+      BUFFER[0] = 0;
     }
     dm.pid = -1;
     timed = 0;
@@ -180,6 +181,7 @@ void clear_bar(const char *format, char *buffer) {
 
   sprintf(formatted, "^f%d^", WIDTH * (BARS + BAR_SPACE));
   strcat(subbuffer, formatted);
+  strcat(subbuffer, "                      ");
   int l = sprintf(buffer, format, subbuffer);
   buffer[l] = '\0';
   free(subbuffer);
