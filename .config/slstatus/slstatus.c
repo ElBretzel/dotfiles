@@ -21,6 +21,8 @@ static volatile sig_atomic_t done;
 static Display *dpy;
 static char *BUFFER;
 static int *SIZE_BUFFER;
+static short flag_show;
+static double timed = 0;
 
 int init(void);
 int open_fifo_ready(void);
@@ -53,6 +55,8 @@ void handler(int signum) {
       dm.fifo_fd = open_fifo_ready();
     }
     dm.pid = -1;
+    timed = 0;
+    flag_show = 0;
   }
 }
 
@@ -110,7 +114,6 @@ int write_config(int tmp_fd) {
 int min(int a, int b) { return a < b ? a : b; }
 void draw_status2d(float *bars_num, const char *format, char *buffer) {
 
-  int x = 0;
   char formatted[SIZE_ALLOC] = {0};
   char *subbuffer = calloc(SIZE_ALLOC * BARS + 1, sizeof(char));
   if (subbuffer == NULL) {
@@ -124,14 +127,14 @@ void draw_status2d(float *bars_num, const char *format, char *buffer) {
     int height_base = HEIGHT - height;
     int erase_base = 0;
     int erase_height = height_base;
-    int x_base = x + WIDTH * i;
+    int x_base = (WIDTH + BAR_SPACE) * i;
 
     sprintf(formatted, "^c%s^^r%d,%d,%d,%d^^c%s^^r%d,%d,%d,%d^",
             colors[colorsize], x_base, height_base, WIDTH, height, color_bg,
             x_base, erase_base, WIDTH, erase_height);
     strcat(subbuffer, formatted);
   }
-  sprintf(formatted, "^f%d^", x + WIDTH * (BARS + 1));
+  sprintf(formatted, "^f%d^", WIDTH * (BARS + 1 + BAR_SPACE));
   strcat(subbuffer, formatted);
   int l = sprintf(buffer, format, subbuffer);
   buffer[l] = '\0';
@@ -180,7 +183,25 @@ char **create_cava_cmd(int tmp_fd, char *tmp_name) {
   return cava_cmd;
 }
 
-int frame_bar(int fifo_fd, float *bars_num) {
+void clear_bar(const char *format, char *buffer) {
+  char formatted[SIZE_ALLOC] = {0};
+  char *subbuffer = calloc(SIZE_ALLOC * BARS + 1, sizeof(char));
+  if (subbuffer == NULL) {
+    return;
+  }
+
+  sprintf(formatted, "^c%s^^r%d,%d,%d,%d^", color_bg, 0, 0,
+          (WIDTH + BAR_SPACE) * (BARS), HEIGHT);
+  strcat(subbuffer, formatted);
+
+  sprintf(formatted, "^f%d^", WIDTH * (BARS + BAR_SPACE));
+  strcat(subbuffer, formatted);
+  int l = sprintf(buffer, format, subbuffer);
+  buffer[l] = '\0';
+  free(subbuffer);
+}
+
+int frame_bar(int fifo_fd, float *bars_num, int *sum) {
   unsigned char bar_heights[BARS] = {0};
   unsigned char copy_bar_heights[BARS] = {0};
   int num_read = 0;
@@ -192,6 +213,7 @@ int frame_bar(int fifo_fd, float *bars_num) {
   }
 
   for (int i = 0; i < BARS; i++) {
+    *sum += bar_heights[i];
     float height = bar_heights[i] / 255.f;
     bars_num[i] = height;
   }
@@ -330,10 +352,15 @@ int init(void) {
   return status == EXIT_FAILURE;
 }
 
-int fill_bar_buffer(int fifo_fd, const char *format, char *BUFFER) {
+int fill_bar_buffer(int fifo_fd, const char *format, char *BUFFER, int *sum) {
 
   float bars_num[BARS];
-  int frame = frame_bar(fifo_fd, bars_num);
+  int frame = frame_bar(fifo_fd, bars_num, sum);
+
+  if (!flag_show) {
+    sprintf(BUFFER, format, "");
+    return 0;
+  }
 
   // Fifo not empty
   if (!frame) {
@@ -450,7 +477,7 @@ static void print_status(char *BUFFER, char *cpy_buffer) {
 }
 
 int main(int argc, char *argv[]) {
-  struct timespec start, current, diff, intspec, wait, cavawait, nwait;
+  struct timespec start, current, diff, intspec, wait, cavawait, nwait, fin;
   int sflag;
 
   sflag = 0;
@@ -522,6 +549,9 @@ int main(int argc, char *argv[]) {
   cpy_buffer[*SIZE_BUFFER] = '\0';
   strncpy(cpy_buffer, BUFFER, *SIZE_BUFFER);
 
+  int sum = 0;
+  flag_show = 0;
+
   do {
 
     if (clock_gettime(CLOCK_MONOTONIC, &start) < 0) {
@@ -542,7 +572,7 @@ int main(int argc, char *argv[]) {
           return free_sl4("puts:", CAVABUFFER, cpy_buffer);
         }
       } else {
-        if (!fill_bar_buffer(fifo_fd, cpy_buffer, CAVABUFFER))
+        if (!fill_bar_buffer(fifo_fd, cpy_buffer, CAVABUFFER, &sum))
           print_status(CAVABUFFER, cpy_buffer);
       }
       usleep(1000000 / FRAMERATE);
@@ -578,11 +608,39 @@ int main(int argc, char *argv[]) {
             return free_sl4("puts:", CAVABUFFER, cpy_buffer);
           }
         } else {
-          if (!fill_bar_buffer(fifo_fd, cpy_buffer, BUFFER))
+          if (!fill_bar_buffer(fifo_fd, cpy_buffer, BUFFER, &sum)) {
             print_status(BUFFER, cpy_buffer);
+          }
         }
         nanosleep(&nwait, NULL);
       }
+    }
+
+    if (clock_gettime(CLOCK_MONOTONIC, &current) < 0) {
+      unmap(BUFFER, SIZE_BUFFER);
+      return free_sl4("clock_gettime:", CAVABUFFER, cpy_buffer);
+    }
+    difftimespec(&fin, &current, &start);
+
+    if (TIMEOUT >= 0) {
+      if (sum > 0) {
+        if (!flag_show) {
+          clear_bar(cpy_buffer, BUFFER);
+          print_status(BUFFER, cpy_buffer);
+        }
+        timed = 0;
+        flag_show = 1;
+      } else {
+        if (flag_show) {
+          timed += fin.tv_nsec;
+          if (timed > TIMEOUT * 1E9) {
+            flag_show = 0;
+            clear_bar(cpy_buffer, BUFFER);
+            print_status(BUFFER, cpy_buffer);
+          }
+        }
+      }
+      sum = 0;
     }
   } while (!done && waitpid(pid_daemon, &status, WNOHANG) == 0);
 

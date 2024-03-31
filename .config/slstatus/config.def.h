@@ -8,7 +8,10 @@ const unsigned int interval = 1000;
 /* text to show if no value can be retrieved */
 static const char unknown_str[] = "";
 
-/* maximum output string length */
+/*
+ * maximum output string length
+ * you can increase if the bar do not display all the text
+ */
 #define MAXLEN 2048
 
 // Number of bars
@@ -20,9 +23,18 @@ static const char unknown_str[] = "";
 // Max height one bar in pixel
 #define HEIGHT 23
 // Minimum height of one bar in pixel
-#define MINSIZE 5
-// Number of refreshment per second (FPS) (ressource intensive)
+#define MINSIZE 3
+/*
+ * Number of refreshment per second (FPS) (ressource intensive)
+ *24 is a good value, you can start to decrease if it is lagging or increase if
+ * there is latency
+ */
 #define FRAMERATE 24
+// Define the number of pixesls between each bars
+#define BAR_SPACE 2
+// Duration when if no sound is detected, the cava bar will be removed
+// If set to -1, the bar will always be displayed
+#define TIMEOUT 10
 
 /*
  * Advanced configuration (should not be usefull unless you are using an OS with
@@ -101,7 +113,7 @@ struct arg {
 static const struct arg args[] = {
     /* function format          argument */
 
-    {cava, "%s ", ""},
+    {cava, " %s ", ""},
     {run_command, "^c#9ece6a^%s", "sh $HOME/.config/slstatus/scripts/xbps"},
     {run_command, "^c#a9b1d6^^b#222222^ %s ",
      "sh $HOME/.config/slstatus/scripts/brightness"},
