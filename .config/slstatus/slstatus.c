@@ -172,6 +172,7 @@ void clear_bar(const char *format, char *buffer) {
   if (subbuffer == NULL) {
     return;
   }
+  strcat(subbuffer, "                      ");
 
   sprintf(formatted, "^c%s^^r%d,%d,%d,%d^", color_bg, 0, 0,
           (WIDTH + BAR_SPACE) * (BARS), HEIGHT);
