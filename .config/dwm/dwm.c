@@ -975,7 +975,7 @@ void drawbar(Monitor *m) {
     if (!(occ & 1 << i || m->tagset[m->seltags] & 1 << i))
       continue;
     if (m->tagset[m->seltags] & 1 << i) {
-      w = TEXTW("");
+      w = TEXTW(tag_active);
     } else {
       w = TEXTW(tags[i]);
     }
@@ -993,7 +993,8 @@ void drawbar(Monitor *m) {
     drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], urg & 1 << i);
 
     drw_text(drw, x, 0, w, bh, lrpad / 2,
-             (m->tagset[m->seltags] & 1 << i) ? "" : tags[i], urg & 1 << i);
+             (m->tagset[m->seltags] & 1 << i) ? tag_active : tags[i],
+             urg & 1 << i);
 
     if (ulineall ||
         m->tagset[m->seltags] &
