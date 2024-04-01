@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 void exitdwm() {
 #if defined S_LOCK || defined S_RESTART_DWM || defined S_OFFSCREEN ||          \
@@ -44,9 +46,13 @@ void exitdwm() {
     goto close_streams;
   }
 
-  if (strcmp(exit_action, S_LOCK) == 0)
-    system("slock");
-  else if (strcmp(exit_action, S_RESTART_DWM) == 0)
+  if (strcmp(exit_action, S_LOCK) == 0) {
+    pid_t pid = fork();
+    if (pid == 0) {
+      char *const cmd[] = {"/usr/local/bin/slock", NULL};
+      execvp(*cmd, cmd);
+    }
+  } else if (strcmp(exit_action, S_RESTART_DWM) == 0)
     quit(&(const Arg){1});
   else if (strcmp(exit_action, S_OFFSCREEN) == 0)
     system("sleep .5; xset dpms force off");
