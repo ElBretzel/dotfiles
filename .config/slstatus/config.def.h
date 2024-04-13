@@ -135,14 +135,13 @@ enum cava_actions {
   ACTION_PRINT,
 };
 
-struct signal_deamon {
-  int graceful;
+struct cava_daemon_data {
   pid_t pid;
   int fifo_fd;
 };
 
-typedef struct signal_deamon sdeamon;
-static sdeamon dm = {.graceful = 1, .pid = -1, .fifo_fd = -1};
+typedef struct cava_daemon_data cavad;
+static cavad dm = {.pid = -1, .fifo_fd = -1};
 
 static const struct arg args[] = {
     /* function format          argument */

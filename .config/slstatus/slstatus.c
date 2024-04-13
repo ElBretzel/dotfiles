@@ -14,50 +14,52 @@
 #include "util.h"
 
 #define SIZE_ALLOC 128
+#define CONFIG_FILE_SIZE 1024
+
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 char buf[1024];
+
 static volatile sig_atomic_t done;
+static volatile sig_atomic_t fifo;
+static volatile sig_atomic_t flag_show;
+static volatile sig_atomic_t timed = 0;
+
 static Display *dpy;
+
 static char *BUFFER;
 static int *SIZE_BUFFER;
-static short flag_show;
-static double timed = 0;
-static short flag_restart = 0;
+static size_t alloc_buffer = SIZE_ALLOC * BARS + MAXLEN + 1;
+static int size_color = (sizeof(colors) / sizeof(colors[0])) - 1;
 
 int init(void);
 int open_fifo_ready(void);
+static int print_status(char *BUFFER, char *cpy_buffer);
 
 void handler(int signum) {
   if (signum == SIGTERM || signum == SIGINT) {
-    // printf("PID: %d\n", dm.pid);
     if (dm.pid > 1) {
       kill(dm.pid, SIGTERM);
-      // printf("kill(%d, SIGINT);\n", dm.pid);
     }
     done = 1;
-    dm.graceful = 0;
   }
   if (signum == SIGUSR1) {
-    // printf("Enter: %d\n", dm.pid);
-    //  Backend listen
-    // printf("I enter\n");
-    // printf("PID: %d\n", dm.pid);
     if (dm.pid > 1) {
-      // printf("%d\n", dm.pid);
       kill(dm.pid, SIGTERM);
-    }
-    // Frontend listen
-    else {
-      // printf("Closing fifo %s: %d\n", FIFO_NAME, dm.fifo_fd);
-      close(dm.fifo_fd);
+    } else {
+
+      close(fifo);
+      fifo = -1;
       unlink(FIFO_NAME);
       mkfifo(FIFO_NAME, 0666);
-      dm.fifo_fd = open_fifo_ready();
+
+      char _[1] = {0};
+      print_status("\0", _);
+
+      fifo = open_fifo_ready();
     }
-    dm.pid = -1;
     timed = 0;
     flag_show = 0;
-    flag_restart = 1;
   }
 }
 
@@ -86,7 +88,7 @@ int init_signal(void) {
 }
 
 int write_config(int tmp_fd) {
-  char buffer[1024] = {0};
+  char buffer[CONFIG_FILE_SIZE] = {0};
   const char *config = "[general]\n"
                        "bars = %d\n"
                        "framerate = %d\n"
@@ -100,69 +102,84 @@ int write_config(int tmp_fd) {
                        "raw_target = %s\n"
                        "bit_format = 8bit\n";
 
-  sprintf(buffer, config, BARS, FRAMERATE, FIFO_NAME);
-  if (write(tmp_fd, buffer, strlen(buffer)) == -1) {
+  int written =
+      snprintf(buffer, CONFIG_FILE_SIZE, config, BARS, FRAMERATE, FIFO_NAME);
+  if (written < 0) {
+    perror("could not snprintf");
+    return EXIT_FAILURE;
+  }
+  if (write(tmp_fd, buffer, written) == -1) {
     perror("could not write into temporary file");
-    return -1;
+    return EXIT_FAILURE;
   }
   if (fsync(tmp_fd) == -1) {
     perror("could not sync the temporary file");
-    return -1;
+    return EXIT_FAILURE;
   }
-  return 0;
+  return EXIT_SUCCESS;
 }
 
-int min(int a, int b) { return a < b ? a : b; }
-void draw_status2d(float *bars_num, const char *format, char *buffer) {
+// CRITICAL PERFORMANCE
+void draw_status2d(unsigned char *bars_num, const char *format, char *buffer) {
 
   char formatted[SIZE_ALLOC] = {0};
-  char *subbuffer = calloc(SIZE_ALLOC * BARS + 1, sizeof(char));
-  if (subbuffer == NULL) {
-    return;
-  }
-  int size_color = (sizeof(colors) / sizeof(colors[0])) - 1;
+  char subbuffer[SIZE_ALLOC * BARS] = {0};
+
+  int total = 0;
+
+  int erase_base = 0;
+  int tmp_height = HEIGHT - HEIGHT_PADDING;
+  int tmp_x_base = WIDTH + BAR_SPACE;
+
   for (int i = 0; i < BARS; i++) {
 
-    int colorsize = (int)(bars_num[i] * size_color);
-    int height = (int)(bars_num[i] * (HEIGHT - HEIGHT_PADDING)) + MINSIZE;
+    float bn = *(bars_num++) / 255.f;
+    int colorsize = bn * size_color;
+    int height = bn * tmp_height + MINSIZE;
     int height_base = HEIGHT - height;
-    int erase_base = 0;
     int erase_height = height_base;
-    int x_base = (WIDTH + BAR_SPACE) * i;
+    int x_base = tmp_x_base * i;
 
-    sprintf(formatted, "^c%s^^r%d,%d,%d,%d^^c%s^^r%d,%d,%d,%d^",
-            colors[colorsize], x_base, height_base, WIDTH, height, color_bg,
-            x_base, erase_base, WIDTH, erase_height);
-    strcat(subbuffer, formatted);
+    int written = snprintf(
+        formatted, SIZE_ALLOC, "^c%s^^r%d,%d,%d,%d^^c%s^^r%d,%d,%d,%d^",
+        colors[colorsize], x_base, height_base, WIDTH, height, color_bg, x_base,
+        erase_base, WIDTH, erase_height);
+    memcpy(subbuffer + total, formatted, written);
+    total += written;
   }
-  sprintf(formatted, "^f%d^", WIDTH * (BARS + 1 + BAR_SPACE));
-  strcat(subbuffer, formatted);
-  int l = sprintf(buffer, format, subbuffer);
-  buffer[l] = '\0';
-  free(subbuffer);
+  int written =
+      snprintf(formatted, SIZE_ALLOC, "^f%d^", WIDTH * (BARS + 1 + BAR_SPACE));
+  memcpy(subbuffer + total, formatted, written);
+  total += written;
+  subbuffer[total] = '\0'; // critical performence (didn t check overflow but
+                           // should be fine)
+  snprintf(buffer, alloc_buffer, format, subbuffer);
 
   return;
 }
 
 char **create_cava_cmd(int tmp_fd, char *tmp_name) {
-  if (write_config(tmp_fd) == -1) {
+  if (write_config(tmp_fd) == EXIT_FAILURE) {
+    perror("could not write to config file");
     return NULL;
   }
   char **cava_cmd = calloc(NUMBER_ARGS + 1, sizeof(char *));
   if (cava_cmd == NULL) {
+    perror("could not allocate enough space for exec process");
     return NULL;
   }
   for (size_t i = 0; i < NUMBER_ARGS; i++) {
     cava_cmd[i] = calloc(SIZE_ALLOC + 1, sizeof(char));
     if (*cava_cmd == NULL) {
+      perror("could not allocate enough spaces inside exec process");
       return NULL;
     }
   }
 
-  sprintf(cava_cmd[0], BINLOC, "cava");
-  memcpy(cava_cmd[1], "cava", strlen("cava"));
-  memcpy(cava_cmd[2], "-p", strlen("-p"));
-  sprintf(cava_cmd[3], "%s", tmp_name);
+  snprintf(cava_cmd[0], SIZE_ALLOC, BINLOC, "cava");
+  memcpy(cava_cmd[1], "cava", 4);
+  memcpy(cava_cmd[2], "-p", 2);
+  snprintf(cava_cmd[3], SIZE_ALLOC, "%s", tmp_name);
   cava_cmd[NUMBER_ARGS] = NULL;
 
   return cava_cmd;
@@ -172,37 +189,35 @@ void clear_bar(const char *format, char *buffer) {
   char formatted[SIZE_ALLOC] = {0};
   char *subbuffer = calloc(SIZE_ALLOC * BARS + 1, sizeof(char));
   if (subbuffer == NULL) {
+    perror("could not allocate enough space for drawing bar");
     return;
   }
   strcat(subbuffer, "                      ");
 
-  sprintf(formatted, "^c%s^^r%d,%d,%d,%d^", color_bg, 0, 0,
-          (WIDTH + BAR_SPACE) * (BARS), HEIGHT);
+  snprintf(formatted, SIZE_ALLOC, "^c%s^^r%d,%d,%d,%d^", color_bg, 0, 0,
+           (WIDTH + BAR_SPACE) * (BARS), HEIGHT);
   strcat(subbuffer, formatted);
 
-  sprintf(formatted, "^f%d^", WIDTH * (BARS + BAR_SPACE));
+  snprintf(formatted, SIZE_ALLOC, "^f%d^", WIDTH * (BARS + BAR_SPACE));
   strcat(subbuffer, formatted);
   strcat(subbuffer, "                      ");
-  int l = sprintf(buffer, format, subbuffer);
-  buffer[l] = '\0';
+  snprintf(buffer, alloc_buffer, format, subbuffer);
   free(subbuffer);
 }
 
-int frame_bar(int fifo_fd, float *bars_num, int *sum) {
-  unsigned char bar_heights[BARS] = {0};
-  unsigned char copy_bar_heights[BARS] = {0};
+// CRITICAL PERFORMANCE
+int frame_bar(int fifo_fd, unsigned char *bars_num, int *sum) {
   int num_read = 0;
 
   // Flush fifo and keep in memory the last one
-  while ((num_read += read(fifo_fd, copy_bar_heights,
-                           BARS * sizeof(unsigned char))) >= BARS) {
-    memcpy(bar_heights, copy_bar_heights, sizeof(unsigned char) * BARS);
+  while ((num_read += read(fifo_fd, bars_num, BARS * sizeof(unsigned char))) >=
+         BARS) {
   }
 
-  for (int i = 0; i < BARS; i++) {
-    *sum += bar_heights[i];
-    float height = bar_heights[i] / 255.f;
-    bars_num[i] = height;
+  if (num_read > 0) {
+    for (int i = 0; i < BARS; i++) {
+      *sum += *(bars_num++);
+    }
   }
   return (num_read + 1) < BARS;
 }
@@ -241,7 +256,6 @@ int free_step2(int tmp_fd, char *tmp_name, char **cava_cmd) {
 }
 
 int free_sl1(const char *msg) {
-  dm.graceful = 0;
   if (dm.pid > 1)
     kill(dm.pid, SIGTERM);
   if (msg != NULL)
@@ -263,8 +277,10 @@ int free_sl3(const char *msg, char *TMPBUFFER, char *cpy_buffer) {
 
 int free_sl4(const char *msg, char *TMPBUFFER, char *cpy_buffer) {
   free_sl3(msg, TMPBUFFER, cpy_buffer);
-  close(dm.fifo_fd);
-  unlink(FIFO_NAME);
+  if (fifo > 1) {
+    close(fifo);
+    unlink(FIFO_NAME);
+  }
   return EXIT_FAILURE;
 }
 
@@ -277,6 +293,7 @@ int unmap(char *BUFFER, int *SIZE_BUFFER) {
 int init(void) {
   char *tmp_name = calloc(SIZE_ALLOC + 1, sizeof(char));
   if (tmp_name == NULL) {
+    perror("could not allocate enough space for temporary file name");
     return EXIT_FAILURE;
   }
 
@@ -339,17 +356,22 @@ int init(void) {
   return status == EXIT_FAILURE;
 }
 
+// CRITICAL PERFORMANCE
 int fill_bar_buffer(int fifo_fd, const char *format, char *BUFFER, int *sum) {
 
-  float bars_num[BARS];
-  int frame = frame_bar(fifo_fd, bars_num, sum);
+  unsigned char bars_num[BARS];
+  int frame = frame_bar(fifo_fd, bars_num, sum); // read to check if alive (sum
+                                                 // > 0)
 
   if (!flag_show) {
-    sprintf(BUFFER, format, "");
+    // to check if bar needs to be shown, we need to read and check if the sum
+    // of the bar are > 0
+    // we can almost always read the fifo so we can t this information to check
+    snprintf(BUFFER, alloc_buffer, format, "");
     return 0;
   }
 
-  // Fifo not empty
+  // Fifo not empty (can happen if not displayed)
   if (!frame) {
     draw_status2d(bars_num, format, BUFFER);
     return 0;
@@ -369,17 +391,14 @@ pid_t start_daemon(void) {
     return daemon;
   }
 
-  while (dm.graceful) {
-    // printf("graceful: %d\n", dm.graceful);
-    // printf("Before: %d\n", dm.pid);
+  while (!done) {
     int status;
     status = init();
-    // printf("After: %d\n", dm.pid);
     if (status != EXIT_SUCCESS) {
+      perror("error occured during cava initialization..");
       _exit(EXIT_FAILURE);
     }
   }
-  // printf("I exited graceful\n");
 
   _exit(EXIT_SUCCESS);
 }
@@ -399,15 +418,15 @@ int open_fifo_ready(void) {
 
     fifo_fd = open(FIFO_NAME, O_RDONLY | O_NONBLOCK | O_CREAT);
     if (fifo_fd == -1) {
-      fprintf(stderr, "could not open cava FIFO for reading\n");
-      return -1;
+      perror("could not open cava FIFO for reading");
+      return EXIT_FAILURE;
     }
     max_try--;
   } while ((num_read = read(fifo_fd, buffer, 1 * sizeof(unsigned char))) <= 0 &&
            max_try > 0);
   if (max_try == 0) {
-    fprintf(stderr, "could not open fifo at all\n");
-    return -1;
+    perror("could not open fifo at all");
+    return EXIT_FAILURE;
   }
   return fifo_fd;
 }
@@ -451,20 +470,17 @@ static void difftimespec(struct timespec *res, struct timespec *a,
 
 static void usage(void) { die("usage: %s [-v] [-s] [-1]", argv0); }
 
-static void print_status(char *BUFFER, char *cpy_buffer) {
+static int print_status(char *BUFFER, char *cpy_buffer) {
   if (XStoreName(dpy, DefaultRootWindow(dpy), BUFFER) < 0) {
-    close(dm.fifo_fd);
-    free(BUFFER);
-    dm.graceful = 0;
-    free(cpy_buffer);
-
-    die("XStoreName: Allocation failed");
+    perror("XStoreName: Allocation failed");
+    return EXIT_FAILURE;
   }
   XFlush(dpy);
+  return EXIT_SUCCESS;
 }
 
 int main(int argc, char *argv[]) {
-  struct timespec start, current, diff, intspec, wait, cavawait, nwait, fin;
+  struct timespec start, current, diff, intspec, wait, fin;
   int sflag;
 
   sflag = 0;
@@ -499,8 +515,6 @@ int main(int argc, char *argv[]) {
   // Start cava slstatus daemon
   pid_t pid_daemon = start_daemon();
 
-  size_t alloc_buffer = SIZE_ALLOC * BARS + MAXLEN + 1;
-
   int status;
 
   BUFFER = mmap(NULL, sizeof(BUFFER) * alloc_buffer, PROT_READ | PROT_WRITE,
@@ -522,23 +536,21 @@ int main(int argc, char *argv[]) {
   }
 
   // Open fifo cava
-  int fifo_fd = open_fifo_ready();
-  dm.fifo_fd = fifo_fd;
+  fifo = open_fifo_ready();
 
-  if (dm.fifo_fd == -1) {
+  if (fifo == EXIT_FAILURE) {
     unmap(BUFFER, SIZE_BUFFER);
     return free_sl3("Could not open fifo", CAVABUFFER, cpy_buffer);
   }
 
+  // compute one time bar to run cavabar
   pid_t first_compute = compute_status_parralel(alloc_buffer);
   waitpid(first_compute, NULL, 0);
-
   cpy_buffer[*SIZE_BUFFER] = '\0';
-  strncpy(cpy_buffer, BUFFER, *SIZE_BUFFER);
+  memcpy(cpy_buffer, BUFFER, *SIZE_BUFFER * sizeof(char));
 
   int sum = 0;
   flag_show = 0;
-  flag_restart = 0;
 
   do {
 
@@ -547,60 +559,40 @@ int main(int argc, char *argv[]) {
       return free_sl4("clock_gettime:", CAVABUFFER, cpy_buffer);
     }
 
-    strcpy(CAVABUFFER, BUFFER);
+    memcpy(CAVABUFFER, BUFFER, alloc_buffer);
 
     pid_t pid_slstatus = compute_status_parralel(alloc_buffer);
 
     do {
-      if (sflag) {
-        puts(CAVABUFFER);
-        fflush(stdout);
-        if (ferror(stdout)) {
-          unmap(BUFFER, SIZE_BUFFER);
-          return free_sl4("puts:", CAVABUFFER, cpy_buffer);
-        }
-      } else {
-        if (!fill_bar_buffer(fifo_fd, cpy_buffer, CAVABUFFER, &sum))
-          print_status(CAVABUFFER, cpy_buffer);
-      }
+      if (!fill_bar_buffer(fifo, cpy_buffer, CAVABUFFER, &sum))
+        print_status(CAVABUFFER, cpy_buffer);
       usleep(1000000 / FRAMERATE);
     } while (!done && waitpid(pid_slstatus, NULL, WNOHANG) == 0);
 
     if (!done) {
       cpy_buffer[*SIZE_BUFFER] = '\0';
-      strncpy(cpy_buffer, BUFFER, *SIZE_BUFFER);
+      memcpy(cpy_buffer, BUFFER, *SIZE_BUFFER);
 
       if (clock_gettime(CLOCK_MONOTONIC, &current) < 0) {
         unmap(BUFFER, SIZE_BUFFER);
         return free_sl4("clock_gettime:", CAVABUFFER, cpy_buffer);
       }
-      difftimespec(&diff, &current, &start);
+      difftimespec(&diff, &current, &start); // time taken
 
       intspec.tv_sec = interval / 1000;
       intspec.tv_nsec = (interval % 1000) * 1E6;
-      difftimespec(&wait, &intspec, &diff);
+      difftimespec(&wait, &intspec, &diff); // time before slstatus reload
 
-      cavawait.tv_sec = wait.tv_sec / ((wait.tv_nsec * FRAMERATE) / 1E9);
-      cavawait.tv_nsec = wait.tv_nsec / FRAMERATE;
-      intspec.tv_sec = 0;
-      intspec.tv_nsec = 0;
+      struct timespec cavawait;
+      cavawait.tv_sec = 1 / FRAMERATE;
+      cavawait.tv_nsec = 1E9 / FRAMERATE;
 
-      difftimespec(&nwait, &cavawait, &intspec);
       size_t n = (wait.tv_nsec * FRAMERATE) / 1E9;
       for (size_t i = 0; i < n; i++) {
-        if (sflag) {
-          puts(BUFFER);
-          fflush(stdout);
-          if (ferror(stdout)) {
-            unmap(BUFFER, SIZE_BUFFER);
-            return free_sl4("puts:", CAVABUFFER, cpy_buffer);
-          }
-        } else {
-          if (!fill_bar_buffer(fifo_fd, cpy_buffer, BUFFER, &sum)) {
-            print_status(BUFFER, cpy_buffer);
-          }
+        if (!fill_bar_buffer(fifo, cpy_buffer, BUFFER, &sum)) {
+          print_status(BUFFER, cpy_buffer);
         }
-        nanosleep(&nwait, NULL);
+        nanosleep(&cavawait, NULL);
       }
     }
 
@@ -610,24 +602,19 @@ int main(int argc, char *argv[]) {
     }
     difftimespec(&fin, &current, &start);
 
-    if (flag_restart) {
-      flag_restart = 0;
-      print_status("\0", cpy_buffer);
-      usleep(FIFO_SCAN_INTERVAL);
-    }
-
-    if (TIMEOUT >= 0) {
-      if (sum > 0) {
-        if (!flag_show) {
+    if (TIMEOUT >= 0) {   // check if we disabled timeout or not
+      if (sum > 0) {      // if cavabar active
+        if (!flag_show) { // bar is not shown, clear text around to activate
           clear_bar(cpy_buffer, BUFFER);
           print_status(BUFFER, cpy_buffer);
         }
         timed = 0;
         flag_show = 1;
       } else {
-        if (flag_show) {
-          timed += fin.tv_nsec;
-          if (timed > TIMEOUT * 1E9) {
+        if (flag_show) { // bar is shown
+          timed += fin.tv_nsec / 1E6;
+          if (timed > TIMEOUT * 1E3) { // timeout reached, clear text around to
+                                       // disabled
             flag_show = 0;
             clear_bar(cpy_buffer, BUFFER);
             print_status(BUFFER, cpy_buffer);
