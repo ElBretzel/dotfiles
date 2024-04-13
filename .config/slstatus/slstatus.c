@@ -1,13 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 #include <X11/Xlib.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/mman.h>
-#include <sys/wait.h>
 #include <time.h>
-#include <unistd.h>
 
 #include "arg.h"
 #include "config.h"
@@ -15,8 +9,6 @@
 
 #define SIZE_ALLOC 128
 #define CONFIG_FILE_SIZE 1024
-
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 char buf[1024];
 
