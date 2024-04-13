@@ -31,6 +31,7 @@ static char *BUFFER;
 static int *SIZE_BUFFER;
 static size_t alloc_buffer = SIZE_ALLOC * BARS + MAXLEN + 1;
 static int size_color = (sizeof(colors) / sizeof(colors[0])) - 1;
+static int sflag = 0;
 
 int init(void);
 int open_fifo_ready(void);
@@ -54,12 +55,12 @@ void handler(int signum) {
       mkfifo(FIFO_NAME, 0666);
 
       char _[1] = {0};
-      print_status("\0", _);
+      print_status("\0", _); // Redraw full bar
 
       fifo = open_fifo_ready();
     }
-    timed = 0;
-    flag_show = 0;
+    timed = 1;
+    flag_show = TIMEOUT <= 0;
   }
 }
 
@@ -214,7 +215,11 @@ int frame_bar(int fifo_fd, unsigned char *bars_num, int *sum) {
          BARS) {
   }
 
-  if (num_read > 0) {
+  if (num_read < 0) {
+    return 1;
+  }
+
+  if (TIMEOUT >= 0) {
     for (int i = 0; i < BARS; i++) {
       *sum += *(bars_num++);
     }
@@ -470,7 +475,11 @@ static void difftimespec(struct timespec *res, struct timespec *a,
 
 static void usage(void) { die("usage: %s [-v] [-s] [-1]", argv0); }
 
+// CRITICAL PERFORMANCE
 static int print_status(char *BUFFER, char *cpy_buffer) {
+  if (sflag) {
+    return EXIT_SUCCESS;
+  }
   if (XStoreName(dpy, DefaultRootWindow(dpy), BUFFER) < 0) {
     perror("XStoreName: Allocation failed");
     return EXIT_FAILURE;
@@ -481,7 +490,6 @@ static int print_status(char *BUFFER, char *cpy_buffer) {
 
 int main(int argc, char *argv[]) {
   struct timespec start, current, diff, intspec, wait, fin;
-  int sflag;
 
   sflag = 0;
   ARGBEGIN {
@@ -550,7 +558,11 @@ int main(int argc, char *argv[]) {
   memcpy(cpy_buffer, BUFFER, *SIZE_BUFFER * sizeof(char));
 
   int sum = 0;
-  flag_show = 0;
+  flag_show = TIMEOUT <= 0;
+
+  // Clear around
+  clear_bar(cpy_buffer, BUFFER);
+  print_status(BUFFER, cpy_buffer);
 
   do {
 
@@ -622,6 +634,25 @@ int main(int argc, char *argv[]) {
         }
       }
       sum = 0;
+    } else {
+      /*
+       * If reload and no timeout
+       * (timed must be always == 0 if TIMEOUT <= -1
+       */
+      if (timed) {
+        clear_bar(cpy_buffer, BUFFER);
+        print_status(BUFFER, cpy_buffer);
+        timed = 0;
+      }
+    }
+
+    if (sflag) {
+      puts(BUFFER);
+      fflush(stdout);
+      if (ferror(stdout)) {
+        unmap(BUFFER, SIZE_BUFFER);
+        return free_sl4("puts:", CAVABUFFER, cpy_buffer);
+      }
     }
   } while (!done && waitpid(pid_daemon, &status, WNOHANG) == 0);
 
