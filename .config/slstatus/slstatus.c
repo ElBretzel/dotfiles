@@ -1,5 +1,6 @@
 /* See LICENSE file for copyright and license details. */
 #include <X11/Xlib.h>
+#include <stdio.h>
 #include <sys/mman.h>
 #include <time.h>
 
@@ -133,6 +134,8 @@ void draw_status2d(unsigned char *bars_num, const char *format, char *buffer) {
     int erase_height = height_base;
     int x_base = tmp_x_base * i;
 
+    // Rewrite snprintf can lead to better performance
+    // This line is probably the most ressource intensive line
     int written = snprintf(
         formatted, SIZE_ALLOC, "^c%s^^r%d,%d,%d,%d^^c%s^^r%d,%d,%d,%d^",
         colors[colorsize], x_base, height_base, WIDTH, height, color_bg, x_base,
@@ -203,20 +206,22 @@ int frame_bar(int fifo_fd, unsigned char *bars_num, int *sum) {
   int num_read = 0;
 
   // Flush fifo and keep in memory the last one
+  // read syscall can slow down a little
   while ((num_read += read(fifo_fd, bars_num, BARS * sizeof(unsigned char))) >=
          BARS) {
   }
 
-  if (num_read < 0) {
-    return 1;
-  }
+  // Doesn t happen so much, early return not worth it
+  // if (num_read < 0) {
+  //   return 1;
+  // }
 
   if (TIMEOUT >= 0) {
     for (int i = 0; i < BARS; i++) {
       *sum += *(bars_num++);
     }
   }
-  return (num_read + 1) < BARS;
+  return (num_read + 1) ^ BARS;
 }
 
 void free_cava_cmd(char **cava_cmd) {
