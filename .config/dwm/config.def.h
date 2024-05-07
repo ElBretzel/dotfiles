@@ -155,7 +155,8 @@ static const char *dmenucmd[] = {
     "dmenu_run", "-i",     "-F",      "-c",      "-bw",     "3",   "-m",
     dmenumon,    "-fn",    dmenufont, "-nb",     col_gray1, "-nf", col_gray3,
     "-sb",       col_cyan, "-sf",     col_gray4, NULL};
-static const char *termcmd[] = {"st", NULL};
+static const char *termcmd[] = {"st", "-e", "/usr/local/bin/new-shell.sh",
+                                NULL};
 
 #include "exitdwm.c"
 static const Key keys[] = {
