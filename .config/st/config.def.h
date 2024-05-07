@@ -16,12 +16,12 @@ static int borderpx = 2;
  */
 
 /*
- * Please replace my username (dluca) by yours (type users in command line)
- * Then run ./new-bg.sh <path-to-your-wallpaper.jpg>
- * You need to install farbfeld prior to this
+ * Please replace my username (dluca) by yours (type users in command line if
+ * you are unsure) Then run ./new-bg.sh <path-to-your-wallpaper.jpg> You need to
+ * install farbfeld prior to this
  */
 
-static const char *bgfile = "/home/dluca/.config/st/st_wallpaper.ff";
+static const char *bgfile = "/home/dluca/.config/st-wallpaper/st_wallpaper.ff";
 static const int pseudotransparency = 1;
 
 /*
