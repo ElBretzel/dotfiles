@@ -32,7 +32,7 @@ for n, c, a in zip(name, created, activity):
     sessions.append(
         [
             int(a),
-            f"{n : <{length + 1}} | Created: {created_ago} Used: {activity_ago}",
+            f"{n : <{length + 1}} | created {created_ago} and was last used {activity_ago}",
         ]
     )
 sorted_session = "\n".join(map(lambda x: x[1], sorted(sessions, key=lambda x: x[0])))
