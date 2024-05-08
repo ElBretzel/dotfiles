@@ -3,7 +3,7 @@
 set -e
 
 cd "$HOME/.config/dwm/tmux-integration/"
-p=$(python tmux-fzf.py | fzf -n 1 -d '\|' +s | sed "s/'\(.*\)'.*/\1/")
+p=$(python tmux-fzf.py | fzf -n 1 -d '\|' --tac +m --cycle --layout=reverse-list --preview='python tmux-pane.py {}' | sed "s/'\(.*\)'.*/\1/")
 cd ~
 
 if [ "$p" = 'CREATE NEW SESSION' ]; then

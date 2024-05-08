@@ -20,9 +20,9 @@ created = run_proc(TMUX_CREATED)
 activity = run_proc(TMUX_ACTIVITY)
 
 sessions = []
-sessions.append("CREATE NEW SESSION")
-sessions.append("NONE")
 length = 0
+sessions.append([-2, "CREATE NEW SESSION"])
+sessions.append([-1, "NONE"])
 if len(name) > 0:
     length = max(map(lambda x: len(x), name))
 
@@ -30,6 +30,10 @@ for n, c, a in zip(name, created, activity):
     created_ago = pretty_date(datetime.fromtimestamp(int(c)))
     activity_ago = pretty_date(datetime.fromtimestamp(int(a)))
     sessions.append(
-        f"{n : <{length + 1}}| created {created_ago} and was last used {activity_ago}"
+        [
+            int(a),
+            f"{n : <{length + 1}} | Created: {created_ago} Used: {activity_ago}",
+        ]
     )
-print("\n".join(sessions))
+sorted_session = "\n".join(map(lambda x: x[1], sorted(sessions, key=lambda x: x[0])))
+print(sorted_session)
