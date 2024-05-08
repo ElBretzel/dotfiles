@@ -21,6 +21,8 @@ activity = run_proc(TMUX_ACTIVITY)
 
 sessions = []
 length = 0
+sessions.append([-4, "(to show all bindings, press ctrl-h)"])
+sessions.append([-3, "Choose a TMUX session"])
 sessions.append([-2, "CREATE NEW SESSION"])
 sessions.append([-1, "NONE"])
 if len(name) > 0:

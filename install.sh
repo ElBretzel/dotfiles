@@ -54,7 +54,8 @@ install_proc() {
 	fi
 
 	echo "Adding termux new shell script"
-	sudo ln -s $HOME/.config/dwm/new-shell.sh /usr/local/bin/new-shell.sh
+	sudo ln -s $HOME/.config/dwm/new-tmux.sh /usr/local/bin/new-tmux.sh
+	sudo ln -s $HOME/.config/dwm/switch-tmux.sh /usr/local/bin/switch-tmux.sh
 }
 
 uninstall_proc() {

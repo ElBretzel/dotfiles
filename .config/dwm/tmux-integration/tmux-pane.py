@@ -47,7 +47,16 @@ pane_id = list(
         lambda x: x[1],
         filter(lambda x: x[0] == pane, sessions),
     )
-)[0]
+)
+if len(pane_id) == 0:
+    pane_id = list(
+        map(
+            lambda x: x[1],
+            filter(lambda x: x[0].replace("'", "") == pane, sessions),
+        )
+    )[0]
+else:
+    pane_id = pane_id[0]
 
 if pane_id[0] == "%":
     print("\n".join(get_pane(pane_id)))
