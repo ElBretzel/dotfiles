@@ -31,8 +31,7 @@ install_proc() {
 	echo "You can set your own background using the sh script at ./.config/st/new-bg.sh"
 	echo "You will need to install farbfeld to use jpg2ff command"
 	echo "Script usage: Specify a JPG/JPEG file in the script argument"
-	echo "Ex: ././config/st/new-bg.sh my_background.jpg"
-	echo "Then execute the 'make update' command to apply the changes in the dotfile root directory"
+	echo "Ex: ././config/st/new-bg.sh my_background.png"
 	read -p "Press any key to continue the installation." a
 	suckless_init dmenu
 
