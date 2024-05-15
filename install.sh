@@ -36,26 +36,30 @@ install_proc() {
 	read -p "Press any key to continue the installation." a
 	suckless_init dmenu
 
-	echo
-	echo
+	echo ""
+	echo ""
 
-	present=$(cat $HOME/.xinitrc | grep -E "^exec dbus-run-session -- dwm$" | wc -c)
-	instance=$(cat $HOME/.xinitrc | grep "dwm" | wc -c)
-	if [ "$present" -eq 0 ] && [ "$instance" -gt 0 ]; then
-		echo "dwm instance found in $HOME/.xinitrc"
-		echo "If the installation does not work, you can replace manually this instance with: \`exec dbus-run-session -- dwm\`"
-		exit
+	if [ -f "$HOME/.xinitrc" ]; then
+		echo "Creating backup of old .xinitrc config"
+		mv $HOME/.xinitrc $HOME/.xinitrc.OLD
 	fi
-
-	if [ "$present" -eq 0 ]; then
-		echo "Adding dwm in .xinitrc"
-		echo "exec dbus-run-session -- dwm" >>"$HOME/.xinitrc"
-		exit
-	fi
+	echo "Adding dwm in .xinitrc"
+	echo "exec dbus-run-session -- dwm" >>"$HOME/.xinitrc"
 
 	echo "Adding termux new shell script"
-	sudo ln -s $HOME/.config/dwm/new-tmux.sh /usr/local/bin/new-tmux.sh
-	sudo ln -s $HOME/.config/dwm/switch-tmux.sh /usr/local/bin/switch-tmux.sh
+	if [ ! -f "/usr/local/bin/new-tmux.sh" ]; then
+		sudo ln -s $HOME/.config/dwm/new-tmux.sh /usr/local/bin/new-tmux.sh
+	fi
+	if [ ! -f "/usr/local/bin/switch-tmux.sh" ]; then
+		sudo ln -s $HOME/.config/dwm/switch-tmux.sh /usr/local/bin/switch-tmux.sh
+	fi
+
+	if [ -d "/etc/lightdm/" ]; then
+		echo "Creating backup of old lightdm config"
+		sudo mv /etc/lightdm /etc/lightdm.OLD/
+	fi
+	echo "Copying lightdm config"
+	sudo cp -r $HOME/.config/lightdm/ /etc/lightdm/
 }
 
 uninstall_proc() {
