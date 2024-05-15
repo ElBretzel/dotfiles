@@ -21,7 +21,7 @@ static int borderpx = 2;
  * install farbfeld prior to this
  */
 
-static const char *bgfile = "/home/dluca/.config/st-wallpaper/st_wallpaper.ff";
+static const char *bgfile = "/usr/share/backgrounds/st_wallpaper.ff";
 static const int pseudotransparency = 1;
 
 /*
