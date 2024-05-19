@@ -30,7 +30,7 @@ Everything should work on a musl system
 
 ## Dependencies
 
-* Compile:  
+Compile:  
 - libX11-dev
 - libXft-dev
 - libXinerama-dev
@@ -46,14 +46,14 @@ Everything should work on a musl system
 - gcc
 - pkg-config
 
-* Tools:  
+Tools:  
 - git
 - stow
 - curl
 - xset
 - oksh
 
-* External for customization:  
+External for customization:  
 - farbfeld
 - ImageMagick
 - fzf
