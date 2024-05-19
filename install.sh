@@ -1,13 +1,14 @@
 #!/bin/sh
 
 install_proc() {
-	echo "This is the first installation process."
-	echo "You can also update an existing configuration with \`make update\` or uninstall with \`make uninstall\`"
+	echo "WARNING: YOU SHOULD ENTER THIS COMMAND ONLY ONCE!"
+	echo "TO UPDATE EXISTING CONFIGURATION, RUN \`make update\`, AND TO REMOVE COMPLETELY, RUN \`make uninstall\`"
 	echo
-	echo "Make sure you runned \`make\` before continuing the installation."
-	echo "If you are unsure, please follow the README.md file (Installation part)"
-	read -p "Press any key to continue the installation." choice
-
+	echo "YOU SHOULD ONLY SEE THIS TEXT THROUGH THE \`make\` COMMAND."
+	echo "PLEASE BE SURE TO FOLLOW THE INSTALLATION INSTRUCTION IN THE README"
+	echo "IF SUCKLESS FAILED TO COMPILE FIRST TIME, RUN \`make update\`"
+	echo "Press any key ONLY if you have read and understood all the instructions above!"
+	read -p "? " c
 	cur=$(pwd)
 
 	suckless_init() {
@@ -57,8 +58,38 @@ install_proc() {
 		echo "Creating backup of old lightdm config"
 		sudo mv /etc/lightdm /etc/lightdm.OLD/
 	fi
+
 	echo "Copying lightdm config"
+	sudo mkdir -p /etc/lightdm
 	sudo cp -r $HOME/.config/lightdm/ /etc/lightdm/
+
+	echo "New lightdm entry (dwm)"
+	sudo mkdir -p /usr/share/xsessions/
+	sudo sh -c 'echo "[Desktop Entry]\
+  Encoding=UTF-8\
+  Name=dwm\
+  Comment=Dynamic window Manager\
+  Exec=dwm\
+  Icon=dwm\
+  Type=XSession" >/usr/share/xsessions/dwm2.desktop'
+	echo "Created backgrounds directory"
+	sudo mkdir -p "/usr/share/backgrounds/"
+	sudo chmod -R 777 "/usr/share/backgrounds/"
+
+	echo "Changing default shell to oksh"
+	echo "To change back to your shell, run \`chsh -s /<path_to_favorite_shell>\`"
+	chsh -s "/bin/oksh"
+
+	echo "Installing FiraCode Nerd Font Regular"
+	mkdir -p $HOME/.local/share/fonts/
+	curl -fLo "$HOME/.local/share/fonts/FiraCode Nerd Font Regular.ttf" "https://github.com/ryanoasis/nerd-fonts/blob/master/patched-fonts/FiraCode/Regular/FiraCodeNerdFont-Regular.ttf"
+	echo "Reloading font cache"
+	fc-cache -f
+
+	echo "Installing tmux plugins"
+	tmux source $HOME/.config/tmux/tmux.conf
+	$HOME/.tmux/plugins/tpm/scripts/install_plugins.sh
+
 }
 
 uninstall_proc() {
@@ -74,14 +105,30 @@ uninstall_proc() {
 		cd "$cur"
 	}
 
+	echo "WARNING: SOME DATA WILL BE LOSE AFTER THE EXECUTION OF THIS SCRIPT."
+	echo "PLEASE READ WHAT WILL BE DELETED BEFORE CONTINUING!!!"
+	echo "PRESS ANY TOUCH TO CONTINUE OR CTRL-C TO QUIT"
+	read -p "? " c
 	suckless_uninstall dwm
 	suckless_uninstall slock
 	suckless_uninstall slstatus
 	suckless_uninstall st
 	suckless_uninstall dmenu
 
-	echo "Removing termux new shell script"
-	sudo rm /usr/local/bin/new-shell.sh
+	echo "Clean tmux plugins"
+	$HOME/.tmux/plugins/tpm/scripts/clean_plugins.sh
+	echo "Removing tmux scripts"
+	sudo rm /usr/local/bin/new-tmux.sh
+	sudo rm /usr/local/bin/switch-tmux.sh
+	echo "Switching xinitrc"
+	mv $HOME/.xinitrc.OLD $HOME/.xinitrc
+	echo "Switching lightdm"
+	sudo mv /etc/lightdm.OLD /etc/lightdm
+	echo "Removing dwm desktop file"
+	sudo rm /usr/share/xsessions/dwm.desktop
+	echo ""
+	echo ""
+	echo "Dont forget to clean /usr/share/backgrounds/ images !"
 
 }
 
@@ -101,6 +148,9 @@ clean_proc() {
 	suckless_clean slstatus
 	suckless_clean st
 	suckless_clean dmenu
+
+	echo "Clean tmux plugins"
+	$HOME/.tmux/plugins/tpm/scripts/clean_plugins.sh
 
 }
 
@@ -127,6 +177,11 @@ update_proc() {
 	suckless_update slstatus
 	suckless_update st
 	suckless_update dmenu
+
+	echo "Update tmux plugins"
+	$HOME/.tmux/plugins/tpm/scripts/update_plugins.sh
+	echo "Update font cache"
+	fc-cache -f
 
 	echo
 	echo

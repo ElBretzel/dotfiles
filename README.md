@@ -6,14 +6,14 @@ Follows Unix philosophy: Keep it simple stupid.
 
 ## Info
 
-- OS: Void Linux x86_64 (GLibC)
-- WM: Dwm
-- Term: St
-- Bar: Dwm with Slstatus
-- Launcher: Dmenu
-- Shell: yash
-- Editor: Neovim (in my other dotfile repo, heavily bloated as it is my main editor for coding)
-- Font: Fira Code Nerd Font
+- OS: Void Linux x86_64 (glibc)
+- WM: dwm
+- Term: st
+- Bar: dwm with slstatus
+- Launcher: dmenu
+- Shell: oksh
+- Editor: Neovim (lazy preconfiguration)
+- Font: Fira Code Nerd Font Regular
 
 ## Screenshots
 
@@ -23,18 +23,14 @@ Follows Unix philosophy: Keep it simple stupid.
 ## Prerequisites
 
 Unix based system  
-X11 (minimal)  
-dbus  
-A seat manager (elogind)
-[Fira Code Nerd Font](https://www.nerdfonts.com/font-downloads) (I use this font in dwm, slock, st. Can be changed in config header file)  
-Everything should work on a musl system be I didn't tested it  
+dbus (dwm will be launched using dbus session)  
+A seat manager (elogind recommended if unsure)  
+Pipewire or any other server for handling audio (you should check .dwm/autostart.sh)
+Everything should work on a musl system  
 
 ## Dependencies
 
-- stow
-- make
-- git
-
+* Compile:  
 - libX11-dev
 - libXft-dev
 - libXinerama-dev
@@ -45,8 +41,24 @@ Everything should work on a musl system be I didn't tested it
 - gd-dev
 - freetype2-dev
 - fontconfig-dev
+- libXrandr-dev
+- make
+- gcc
+- pkg-config
+
+* Tools:  
+- git
+- stow
+- curl
 - xset
-- xrandr
+- oksh
+
+* External for customization:  
+- farbfeld
+- ImageMagick
+- fzf
+- tmux
+- cava
 
 ## Installation
 
@@ -63,12 +75,22 @@ xbps-install -Su\
         gd-devel\
         freetype-devel\
         fontconfig-devel\
+        libXrandr-devel\
         xset\
-        xrandr\
         stow\
         make\
-        git
+        git\
+        curl\
+        gcc\
+        oksh\
+        pkg-config\
+        farbfeld\
+        ImageMagick\
+        fzf\
+        tmux\
+        cava\
 ```
+
 Then clone the repo  
 ```
 git clone https://github.com/ElBretzel/void-dotfile

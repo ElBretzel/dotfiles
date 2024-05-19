@@ -13,14 +13,12 @@ exec_once() {
 	if [ name != "" ]; then
 		feh --bg-scale "usr/share/backgrounds/$name"
 	fi
-	xrdb merge $HOME/.config/st/xresources
 	slstatus &
 	pipewire &
 	echo "1" >"$exec_once"
 }
 
 exec_always() {
-	xrdb merge $HOME/.config/st/xresources
 	pkill --signal SIGUSR1 slstatus
 }
 

@@ -9,11 +9,6 @@ if [ "$#" -ne 1 ]; then
 	exit 1
 fi
 
-if [ ! -d "/usr/share/backgrounds/" ]; then
-	sudo mkdir -p "/usr/share/backgrounds/"
-	sudo chmod -R 777 "/usr/share/backgrounds/"
-fi
-
 name_wh_ext=$(echo "$1" | sed "s/.*\/\(.*\)\..*/\1/" | sed "s/\([^\.]*\).*/\1/")
 ext=$(echo "$1" | sed "s/.*\.\(.*\)/\1/")
 

@@ -19,8 +19,6 @@ alias l='eza --color=always --icons=auto -F -l -1 --hyperlink -a --long --header
 alias tree='eza --color=always --icons=auto --hyperlink -T'
 alias sl='eza --color=always --icons=auto --hyperlink -F'
 alias lofi="mpv 'https://www.youtube.com/watch?v=jfKfPfyJRdk'"
-alias docker="podman"
-alias conda="podman run -i -t continuumio/anaconda3 /bin/bash"
 alias jupyter="podman run -i -t -p 8888:8888 -v $PWD:/opt/notebooks continuumio/anaconda3 /bin/bash -c 'conda install jupyter -y --quiet && conda install -c conda-forge ipympl -y --quiet && mkdir -p /opt/notebooks && jupyter notebook --notebook-dir=/opt/notebooks --ip=\* --port=8888 --no-browser --allow-root'"
 
 set -A complete_git -- $(git --list-cmds=main)
