@@ -25,7 +25,7 @@ Follows Unix philosophy: Keep it simple stupid.
 Unix based system  
 dbus (dwm will be launched using dbus session)  
 A seat manager (elogind recommended if unsure)  
-Pipewire or any other server for handling audio (you should check .dwm/autostart.sh)
+Pipewire or any other server for handling audio (you should check .dwm/autostart.sh)  
 Everything should work on a musl system  
 
 ## Dependencies
