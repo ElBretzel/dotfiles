@@ -1,5 +1,5 @@
-# void-dotfiles
-VoidLinux personal and minimal dotfile  
+# dotfiles
+VoidLinux personal and minimal dotfiles  
 
 ## Philosophy:
 Follows Unix philosophy: Keep it simple stupid.  
@@ -26,6 +26,8 @@ Unix based system
 dbus (dwm will be launched using dbus session)  
 A seat manager (elogind recommended if unsure)  
 Pipewire or any other server for handling audio (you should check .dwm/autostart.sh)  
+Optional: Display manager (Lightdm will be preconfigured)  
+
 Everything should work on a musl system  
 
 ## Dependencies
@@ -91,10 +93,9 @@ xbps-install -Su\
         cava\
 ```
 
-Then clone the repo  
+Then clone the repo
 ```
-git clone https://github.com/ElBretzel/void-dotfile
-cd void-dotfile
+git clone https://github.com/ElBretzel/dotfiles ElBretzel_dotfiles && cd ElBretzel_dotfiles
 make
 ```
 
@@ -106,7 +107,8 @@ startx
 
 # Display Manager
 
-If you use a display manager like Lightdm, you must create a desktop entry  
+If you use another display manager than Lightdm, you must create a desktop entry  
+Here is the desktop entry created for Lightdm:
 
 ```
 echo "[Desktop Entry]\
@@ -138,8 +140,14 @@ And some personal modifications such as bar height and bar workspace dot skin
 
 ### ST
 
-st build took from [siduck](https://github.com/siduck/st) (didn't touched)  
-I like his build right now. When I will have time, I will do some minor tweaking  
+* [ligatures](https://st.suckless.org/patches/ligatures/)  
+* [boxdraw](https://st.suckless.org/patches/boxdraw/)  
+* [appsync](https://st.suckless.org/patches/sync/) (Because my configuration use tmux)  
+* [background-image](https://st.suckless.org/patches/background_image/) (To avoid using a compositor)  
+* [background-image signal](https://st.suckless.org/patches/background_image/) (Easier to reload current terminal, can be easily removed)  
+* [delkey](https://st.suckless.org/patches/delkey/) (I don't understand why it is not in st by default)  
+* [dynamic cursor](https://st.suckless.org/patches/dynamic-cursor-color/) (lightweight patch and can be easily removed, but I like it)  
+* [undercurl](https://st.suckless.org/patches/undercurl/) (easier to spot errors when coding)  
 
 ### Slstatus
 
@@ -177,7 +185,5 @@ I plan change dwmlogo patch because it is very painful to create custom logo
 
 ## Credits
 
-st build took from [siduck](https://github.com/siduck/st) (go check his
-works)  
 dwm build look inspired by [siduck chadwm](https://github.com/siduck/chadwm/)  
 [dwm's colorful tag patch](https://github.com/fitrh/dwm/issues/1) from fitrh  
