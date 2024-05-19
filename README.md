@@ -136,7 +136,7 @@ Type=XSession" > /usr/share/xsessions/dwm.desktop
 * [underline tag](https://dwm.suckless.org/patches/underlinetags/)  
 * [vanity gaps](https://dwm.suckless.org/patches/vanitygaps/) (everything is included but I only use fibonacci, feel free to modify)  
 * [zoomswap](https://dwm.suckless.org/patches/zoomswap/)  
-And some personal modifications such as bar height and bar workspace dot skin  
+And some personal modifications such as bar height, bar workspace dot colors...    
 
 ### ST
 
