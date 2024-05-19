@@ -61,9 +61,7 @@ install_proc() {
 	fi
 
 	echo "Copying lightdm config"
-	sudo mkdir -p /etc/lightdm
-	sudo cp -r $HOME/.config/lightdm/ /etc/lightdm/
-
+	sudo cp -r $HOME/.config/lightdm/ /etc/
 	echo "New lightdm entry (dwm)"
 	sudo mkdir -p /usr/share/xsessions/
 	sudo sh -c 'echo "[Desktop Entry]
