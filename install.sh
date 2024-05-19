@@ -56,6 +56,7 @@ install_proc() {
 
 	if [ -d "/etc/lightdm/" ]; then
 		echo "Creating backup of old lightdm config"
+		sudo rm -rf /etc/lightdm.OLD
 		sudo mv /etc/lightdm /etc/lightdm.OLD/
 	fi
 
@@ -65,13 +66,13 @@ install_proc() {
 
 	echo "New lightdm entry (dwm)"
 	sudo mkdir -p /usr/share/xsessions/
-	sudo sh -c 'echo "[Desktop Entry]\
-  Encoding=UTF-8\
-  Name=dwm\
-  Comment=Dynamic window Manager\
-  Exec=dwm\
-  Icon=dwm\
-  Type=XSession" >/usr/share/xsessions/dwm2.desktop'
+	sudo sh -c 'echo "[Desktop Entry]
+Encoding=UTF-8
+Name=dwm
+Comment=Dynamic window Manager
+Exec=dwm
+Icon=dwm
+Type=XSession" >/usr/share/xsessions/dwm.desktop'
 	echo "Created backgrounds directory"
 	sudo mkdir -p "/usr/share/backgrounds/"
 	sudo chmod -R 777 "/usr/share/backgrounds/"
