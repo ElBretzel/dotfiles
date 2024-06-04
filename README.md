@@ -54,6 +54,7 @@ Tools:
 - curl
 - xset
 - oksh
+- lxappearance
 
 External for customization:  
 - farbfeld
@@ -91,6 +92,7 @@ xbps-install -Su\
         fzf\
         tmux\
         cava\
+        lxappearance\
 ```
 
 Then clone the repo
