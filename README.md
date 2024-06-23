@@ -60,6 +60,9 @@ Tools:
 - xset
 - oksh
 - lxappearance
+- ntp
+- feh
+- bc
 
 External for customization:  
 
@@ -68,6 +71,9 @@ External for customization:
 - fzf
 - tmux
 - cava
+- python3
+- pipewire
+
 
 ## Installation
 
@@ -75,6 +81,7 @@ For VoidLinux base system (otherwise check dependencies):
 
 ```
 xbps-install -Su\
+        xorg-minimal\
         libX11-devel\
         libXft-devel\
         libXinerama-devel\
@@ -101,6 +108,11 @@ xbps-install -Su\
         tmux\
         cava\
         lxappearance\
+        python3\
+        ntp\
+        feh\
+        pipewire\
+        bc\
 ```
 
 Then clone the repo
