@@ -1,27 +1,27 @@
-_GREEN=$(tput setaf 2)
-_BLUE=$(tput setaf 4)
-_RED=$(tput setaf 1)
-_RESET=$(tput sgr0)
-_BOLD=$(tput bold)
-
 #export PS1="${_GREEN}\h${_BLUE}@${_RED}\u${_RESET} \W${_BOLD} \$ ${_RESET}"
 
-PS1='${_GREEN}\u${_BLUE}@${_RED}\h${_RESET} \W ${_BOLD}$(echo [$?])\n\$${_RESET} '
-#PS1='$(sps)$ '
+PS1='[\[\e[38;5;255m\]\u\[\e[0m\]@\[\e[38;5;255m\]\h\[\e[0m\]] \W \$ '
 PS2='$ '
 
-alias vim='nvim'
-alias fzfp="fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'"
+setxkbmap us -variant altgr-intl
 alias volume="wpctl set-volume @DEFAULT_AUDIO_SINK@"
-alias rel="xrdb merge $HOME/Programs/st/xresources && kill -USR1 $(pidof st)"
 alias ls='eza --color=always --icons=auto --hyperlink -F'
 alias l='eza --color=always --icons=auto -F -l -1 --hyperlink -a --long --header --inode'
 alias tree='eza --color=always --icons=auto --hyperlink -T'
 alias sl='eza --color=always --icons=auto --hyperlink -F'
-alias lofi="mpv 'https://www.youtube.com/watch?v=jfKfPfyJRdk'"
-alias jupyter="podman run -i -t -p 8888:8888 -v $PWD:/opt/notebooks continuumio/anaconda3 /bin/bash -c 'conda install jupyter -y --quiet && conda install -c conda-forge ipympl -y --quiet && mkdir -p /opt/notebooks && jupyter notebook --notebook-dir=/opt/notebooks --ip=\* --port=8888 --no-browser --allow-root'"
-
-set -A complete_git -- $(git --list-cmds=main)
 
 eval "$(zoxide init posix --cmd cd --hook prompt)"
 . "$HOME/.cargo/env"
+
+setxkbmap us -variant altgr-intl
+#export TERM=xterm
+alias cmus='dbus-launch cmus'
+alias void='distrobox enter voidlinux-glibc'
+export PATH="$HOME/Programs/zig:$PATH"
+
+set -o emacs
+alias __A=$(print '\0020') # ^P = up = previous command
+alias __B=$(print '\0016') # ^N = down = next command
+alias __C=$(print '\0006') # ^F = right = forward a character
+alias __D=$(print '\0002') # ^B = left = back a character
+alias __H=$(print '\0001') # ^A = home = beginning of line

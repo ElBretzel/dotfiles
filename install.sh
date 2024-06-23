@@ -89,6 +89,19 @@ Type=XSession" >/usr/share/xsessions/dwm.desktop'
 	tmux source $HOME/.config/tmux/tmux.conf
 	$HOME/.tmux/plugins/tpm/scripts/install_plugins.sh
 
+	sudo echo "export ENV='$HOME/.kshrc'" | sudo tee -a /etc/profile
+	sudo echo "export TMUX_TMPDIR='/var/tmp/'" | sudo tee -a /etc/profile
+
+	mv $HOME/.bashrc $HOME/.bashrc.OLD
+	ln -s "$(realpath ./.bashrc)" $HOME/.bashrc
+	mv $HOME/.kshrc $HOME/.kshrc.OLD
+	ln -s "$(realpath ./.kshrc)" $HOME/.kshrc
+	mv $HOME/.profile $HOME/.profile.OLD
+	ln -s "$(realpath ./.profile)" $HOME/.profile
+
+	curl -LO https://invisible-island.net/datafiles/current/terminfo.src.gz && gunzip terminfo.src.gz
+	tic -xe tmux-256color terminfo.src
+	rm terminfo.src
 }
 
 uninstall_proc() {
