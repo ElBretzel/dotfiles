@@ -11,11 +11,14 @@ dwm_once=$(cat "$tmp_file")
 exec_once() {
 	name=$(find "/usr/share/backgrounds/" -name "background.st.*")
 	if [ name != "" ]; then
-		feh --bg-scale "usr/share/backgrounds/$name"
+		feh --bg-scale "$name"
 	fi
-	slstatus &
+	#ntpdate -s fr.pool.ntp.org
+	sleep 1
 	pipewire &
-	echo "1" >"$exec_once"
+	sleep 1
+	slstatus &
+	echo "1" >"$tmp_file"
 }
 
 exec_always() {
