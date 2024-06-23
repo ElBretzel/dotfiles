@@ -15,16 +15,30 @@ def run_proc(tmux):
     )
 
 
+def get_all_boxes():
+    process = run(
+        "distrobox ls | awk 'NR>1' | awk '{print $3}'", shell=True, capture_output=True
+    )
+    return map(
+        lambda x: x.decode("utf-8"),
+        filter(lambda x: len(x) > 0, process.stdout.split(b"\n")),
+    )
+
+
+boxes = list(get_all_boxes())
 name = [f"'{i}'" for i in run_proc(TMUX_NAME)]
 created = run_proc(TMUX_CREATED)
 activity = run_proc(TMUX_ACTIVITY)
 
 sessions = []
+options = -4 - len(boxes) - 1
 length = 0
-sessions.append([-4, "(to show all bindings, press ctrl-h)"])
-sessions.append([-3, "Choose a TMUX session"])
-sessions.append([-2, "CREATE NEW SESSION"])
-sessions.append([-1, "NONE"])
+sessions.append([options := options + 1, "(to show all bindings, press ctrl-h)"])
+sessions.append([options := options + 1, "Choose a TMUX session"])
+sessions.append([options := options + 1, "NONE"])
+sessions.append([options := options + 1, "CREATE NEW SESSION"])
+for i in range(len(boxes)):
+    sessions.append([options := options + 1, f"BOX: {boxes[i]}"])
 if len(name) > 0:
     length = max(map(lambda x: len(x), name))
 

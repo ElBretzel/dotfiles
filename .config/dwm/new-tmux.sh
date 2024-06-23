@@ -21,6 +21,9 @@ if [ "$p" = 'CREATE NEW SESSION' ]; then
 	fi
 elif [ "$p" = 'NONE' ]; then
 	/bin/oksh
+elif [ "$(echo $p | grep 'BOX: ')" != '' ]; then
+	name="$(echo $p | awk '{print $2}')"
+	/bin/oksh -c "distrobox enter $name -e tmux new -A -s $name"
 else
-	tmux new-session -A -s $p
+	tmux new-session -A -s "$p"
 fi
