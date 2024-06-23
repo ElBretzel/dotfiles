@@ -22,4 +22,4 @@ elif [ "$percent" -le 100 ]; then
     symbol="󰃠"
 fi
 
-echo "$symbol " "^c#f7768e^^b#19181a^ $percent" "%"
+echo "$symbol " "^c#f7768e^^b#19181a^ $percent""%%"

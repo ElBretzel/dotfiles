@@ -69,4 +69,4 @@ esac
 
 
 
-echo "$icon" "^c#b9f27c^^b#19181a^ $pow""%"
+echo "$icon" "^c#b9f27c^^b#19181a^ $pow""%%"

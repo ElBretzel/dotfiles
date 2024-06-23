@@ -6,4 +6,4 @@ time=$(date '+%H:%M')
 fodate=$(date | awk '{print $1}')
 codate=$(date | awk '{print $5}')
 
-echo "^c#000000^^b#90CAF9^ 󰥔 ^b#64B5F6^ $fodate $time $codate "
+echo "^c#000000^^b#91E5F6^ 󰥔 ^b#84D2F6^ $fodate $time $codate "

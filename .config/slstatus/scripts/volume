@@ -18,4 +18,4 @@ elif [ "$volume" -le 66 ]; then
 elif [ "$volume" -le 100 ]; then
     icon="󰕾"
 fi
-echo "$icon" "^c#7da6ff^^b#19181a^ $volume""%"
+echo "$icon" "^c#7da6ff^^b#19181a^ $volume""%%"

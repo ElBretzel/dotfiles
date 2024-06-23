@@ -2,22 +2,23 @@
 
 set -e
 
-if ! updates_void=$(xbps-install -Sun 2> /dev/null | sed -n "s/\([^ ]*\).*/\1/p" | wc -l ); then
-    updates_void=0
+exit
+if ! updates_void=$(xbps-install -Sun 2>/dev/null | sed -n "s/\([^ ]*\).*/\1/p" | wc -l); then
+	updates_void=0
 fi
 
 updates=$((updates_void))
 
 if [ "$updates" -eq 0 ]; then
-    echo " "
-elif [ "$updates" -le 10 ] ; then
-    word="updates"
-    if [ "$updates" -eq 1 ]; then
-        word="update"
-    fi
-    echo "^c#66ff33^ 󰧜 ^b#1a1b26^ $updates $word " 
+	echo " "
+elif [ "$updates" -le 10 ]; then
+	word="updates"
+	if [ "$updates" -eq 1 ]; then
+		word="update"
+	fi
+	echo "^c#66ff33^ 󰧜 ^b#1a1b26^ $updates $word "
 elif [ "$updates" -le 50 ]; then
-    echo "^c#ff9900^ 󰧜 ^b#1a1b26^ $updates updates "
+	echo "^c#ff9900^ 󰧜 ^b#1a1b26^ $updates updates "
 elif [ "$updates" -gt 50 ]; then
-    echo "^c#ff0000^ 󰧜 ^b#1a1b26^ $updates updates "
+	echo "^c#ff0000^ 󰧜 ^b#1a1b26^ $updates updates "
 fi

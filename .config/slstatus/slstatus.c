@@ -2,6 +2,7 @@
 #include <X11/Xlib.h>
 #include <stdio.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
 #include <time.h>
 
 #include "arg.h"
@@ -87,7 +88,7 @@ int write_config(int tmp_fd) {
                        "bars = %d\n"
                        "framerate = %d\n"
                        "[input]\n"
-                       "method = pulse\n"
+                       "method = pipewire\n"
                        "source = auto\n"
                        "[output]\n"
                        "method = raw\n"
@@ -197,6 +198,7 @@ void clear_bar(const char *format, char *buffer) {
   snprintf(formatted, SIZE_ALLOC, "^f%d^", WIDTH * (BARS + BAR_SPACE));
   strcat(subbuffer, formatted);
   strcat(subbuffer, "                      ");
+
   snprintf(buffer, alloc_buffer, format, subbuffer);
   free(subbuffer);
 }
@@ -370,6 +372,7 @@ int fill_bar_buffer(int fifo_fd, const char *format, char *BUFFER, int *sum) {
     // of the bar are > 0
     // we can almost always read the fifo so we can t this information to check
     snprintf(BUFFER, alloc_buffer, format, "");
+
     return 0;
   }
 
@@ -446,6 +449,7 @@ pid_t compute_status_parralel(size_t alloc_buffer) {
   }
 
   if (slstatus != 0) {
+
     return slstatus;
   }
   size_t i, len;
@@ -453,6 +457,7 @@ pid_t compute_status_parralel(size_t alloc_buffer) {
     if (!(res = args[i].func(args[i].args))) {
       res = unknown_str;
     }
+
     if ((ret = esnprintf(BUFFER + len, (alloc_buffer - 1), args[i].fmt, res)) <
         0) {
       break;
@@ -477,6 +482,7 @@ static int print_status(char *BUFFER, char *cpy_buffer) {
   if (sflag) {
     return EXIT_SUCCESS;
   }
+
   if (XStoreName(dpy, DefaultRootWindow(dpy), BUFFER) < 0) {
     perror("XStoreName: Allocation failed");
     return EXIT_FAILURE;
@@ -558,8 +564,8 @@ int main(int argc, char *argv[]) {
   flag_show = TIMEOUT <= 0;
 
   // Clear around
-  clear_bar(cpy_buffer, BUFFER);
-  print_status(BUFFER, cpy_buffer);
+  clear_bar(cpy_buffer, CAVABUFFER);
+  print_status(CAVABUFFER, cpy_buffer);
 
   do {
 
@@ -573,9 +579,11 @@ int main(int argc, char *argv[]) {
     pid_t pid_slstatus = compute_status_parralel(alloc_buffer);
 
     do {
-      if (!fill_bar_buffer(fifo, cpy_buffer, CAVABUFFER, &sum))
+      if (!fill_bar_buffer(fifo, cpy_buffer, CAVABUFFER, &sum)) {
         print_status(CAVABUFFER, cpy_buffer);
+      }
       usleep(1000000 / FRAMERATE);
+
     } while (!done && waitpid(pid_slstatus, NULL, WNOHANG) == 0);
 
     if (!done) {
@@ -632,10 +640,10 @@ int main(int argc, char *argv[]) {
       }
       sum = 0;
     } else {
-      /*
-       * If reload and no timeout
-       * (timed must be always == 0 if TIMEOUT <= -1
-       */
+
+      // If reload and no timeout
+      // (timed must be always == 0 if TIMEOUT <= -1
+
       if (timed) {
         clear_bar(cpy_buffer, BUFFER);
         print_status(BUFFER, cpy_buffer);
